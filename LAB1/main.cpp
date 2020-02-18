@@ -8,12 +8,42 @@ typedef unsigned char uchar;
 
 using namespace std;
 
+enum transform_type {
+    INVERSION,
+    H_FLIP,
+    V_FLIP,
+    C_ROTATE,
+    AC_ROTATE
+};
+
+enum error {
+    FILE_OPEN_ERR,
+    FILE_FORMAT_ERR,
+    MEMORY_ALLOCATION_ERR,
+    PARAMS_ERR
+};
+
+const int MAX_HEADER_SIZE = 50;
+
+enum file_type {
+    P5 = 5,
+    P6
+};
+
 struct mono_pixel {
     uchar val;
 };
 
 struct color_pixel {
     uchar r, g, b;
+};
+
+template <typename T>
+struct image {
+    file_type type;
+    int w, h;
+    int max_val;
+    T* data;
 };
 
 bool is_number(const string& s) {
@@ -25,199 +55,253 @@ bool is_number(const string& s) {
     return true;
 }
 
-void invert(color_pixel *data, int w, int h, uchar max_val) {
-    for (int i = 0; i < h; i++) {
-        for (int j = 0; j < w; ++j) {
-            data[i * w + j].r = max_val - data[i * w + j].r;
-            data[i * w + j].g = max_val - data[i * w + j].g;
-            data[i * w + j].b = max_val - data[i * w + j].b;
-        }
+
+bool file_exists(const char* s) {
+    FILE *file;
+    file = fopen((const char*) s, "r");
+    if (file) {
+        fclose(file);
+        return true;
     }
+    return false;
 }
 
-
-void invert(mono_pixel *data, int w, int h, uchar max_val) {
-    for (int i = 0; i < h; i++) {
-        for (int j = 0; j < w; ++j) {
-            data[i * w + j].val = max_val - data[i * w + j].val;
-        }
-    }
-}
-
-template <typename T>
-void swap_pixels(T *data, int w, int h, int x1, int y1, int x2, int y2) {
-    swap(data[y1 * w + x1], data[y2 * w + x2]);
-}
-
-template <typename T>
-void horizontal_flip(T *data, int w, int h) {
-    for (int i = 0; i < h; i++) {
-        for (int j = 0; j < w / 2; ++j) {
-            swap_pixels(data, w, h, j, i, w - j, i);
-        }
-    }
-}
-
-template <typename T>
-void vertical_flip(T *data, int w, int h) {
-    for (int i = 0; i < h / 2; i++) {
-        for (int j = 0; j < w; ++j) {
-            swap_pixels(data, w, h, j, i, j, h - i);
-        }
-    }
-}
-
-template <typename T>
-void rotate_left(T *data, int &w, int &h) {
-    auto *tmp = new T[w * h];
-    for (int i = 0; i < h; i++) {
-        for (int j = 0; j < w; j++) {
-            tmp[i * w + j] = data[i * w + j];
-        }
-    }
-    int k = 0;
-    for (int j = 0; j < w; j++) {
-        for (int i = h - 1; i >= 0; i--) {
-            data[k] = tmp[i * w + j];
-            k++;
-        }
-    }
-    swap(w, h);
-    delete[](tmp);
-}
-
-template <typename T>
-void rotate_right(T *data, int &w, int &h) {
-    auto *tmp = new T[w * h];
-    for (int i = 0; i < h; i++) {
-        for (int j = 0; j < w; j++) {
-            tmp[i * w + j] = data[i * w + j];
-        }
-    }
-    int k = 0;
-    for (int j = w - 1; j >= 0; j--) {
-        for (int i = 0; i < h; i++) {
-            data[k] = tmp[i * w + j];
-            k++;
-        }
-    }
-    swap(w, h);
-    delete[](tmp);
-}
-
-void write_file(FILE *f, mono_pixel *data, int w, int h, int type, int max_val) {
-    string header =
-            "P" + to_string(type) + "\n" + to_string(w) + " " + to_string(h) +
-            "\n" + to_string(max_val) + "\n";
-    fwrite(header.c_str(), 1, header.size(), f);
-    auto *buf = (uchar *) data;
-    fwrite(buf, 1, w * h, f);
-}
-
-void write_file(FILE *f, color_pixel *data, int w, int h, int type, int max_val) {
-    string header =
-            "P" + to_string(type) + "\n" + to_string(w) + " " + to_string(h) +
-            "\n" + to_string(max_val) + "\n";
-    fwrite(header.c_str(), 1, header.size(), f);
-    auto *buf = (uchar *) data;
-    fwrite(buf, 1, w * h * 3, f);
-}
-
-template <typename T>
-void do_transform(T *pixels, int &w, int &h, int max_val, int param) {
-    switch (param) {
-        case 0:
-            invert(pixels, w, h, max_val);
+void print_err(error err) {
+    switch (err) {
+        case FILE_OPEN_ERR:
+            cout << "Can't open file!";
             break;
-        case 1:
-            horizontal_flip(pixels, w, h);
+        case FILE_FORMAT_ERR:
+            cout << "Unsupported file format!";
             break;
-        case 2:
-            vertical_flip(pixels, w, h);
+        case MEMORY_ALLOCATION_ERR:
+            cout << "Can't allocate memory!";
             break;
-        case 3:
-            rotate_left(pixels, w, h);
-            break;
-        case 4:
-            rotate_right(pixels, w, h);
+        case PARAMS_ERR:
+            cout << "Wrong params!";
             break;
         default:
+            cout << "ERROR!";
             break;
     }
+}
 
+void invert(image<color_pixel>& img) {
+    for (int i = 0; i < img.h; i++) {
+        for (int j = 0; j < img.w; ++j) {
+            img.data[i * img.w + j].r = img.max_val - img.data[i * img.w + j].r;
+            img.data[i * img.w + j].g = img.max_val - img.data[i * img.w + j].g;
+            img.data[i * img.w + j].b = img.max_val - img.data[i * img.w + j].b;
+        }
+    }
+}
+
+
+void invert(image<mono_pixel>& img) {
+    for (int i = 0; i < img.h; i++) {
+        for (int j = 0; j < img.w; ++j) {
+            img.data[i * img.w + j].val = img.max_val - img.data[i * img.w + j].val;
+        }
+    }
+}
+
+template <typename T>
+void swap_pixels(image<T>& img, int x1, int y1, int x2, int y2) {
+    if (x1 < img.w && x1 >= 0 && y1 < img.h && y1 >= 0 && x2 < img.w && x2 >= 0 &&
+        y2 < img.h && y2 >= 0)
+    {
+        swap(img.data[y1 * img.w + x1], img.data[y2 * img.w + x2]);
+    }
+}
+
+template <typename T>
+void horizontal_flip(image<T>& img) {
+    for (int i = 0; i < img.h; i++) {
+        for (int j = 0; j < img.w / 2; j++) {
+            swap_pixels(img, j, i, img.w - j, i);
+        }
+    }
+}
+
+template <typename T>
+void vertical_flip(image<T>& img) {
+    for (int i = 0; i < img.h / 2; i++) {
+        for (int j = 0; j < img.w; j++) {
+            swap_pixels(img, j, i, j, img.h - i);
+        }
+    }
+}
+
+template <typename T>
+void rotate_left(image<T>& img) {
+    auto* tmp = new (nothrow) T[img.w * img.h];
+    int k = 0;
+    for (int j = 0; j < img.w; j++) {
+        for (int i = img.h - 1; i >= 0; i--) {
+            tmp[k] = img.data[i * img.w + j];
+            k++;
+        }
+    }
+    delete[](img.data);
+    img.data = tmp;
+    swap(img.w, img.h);
+}
+
+template <typename T>
+void rotate_right(image<T>& img) {
+    auto *tmp = new T[img.w * img.h];
+    int k = 0;
+    for (int j = img.w - 1; j >= 0; j--) {
+        for (int i = 0; i < img.h; i++) {
+            tmp[k] = img.data[i * img.w + j];
+            k++;
+        }
+    }
+    delete[](img.data);
+    img.data = tmp;
+    swap(img.w, img.h);
+}
+
+template <typename T>
+void write_file(FILE* f, const image<T>& img) {
+    char head[MAX_HEADER_SIZE];
+    int len = snprintf(head, MAX_HEADER_SIZE, "P%i\n%i %i\n%i\n", img.type, img.w, img.h, img.max_val);
+    fwrite(head, 1, len, f);
+    auto* buf = (uchar *) img.data;
+    fwrite(buf, sizeof(T), img.w * img.h, f);
+}
+
+template <typename T>
+void do_transform(image<T>& img, transform_type param) {
+    switch (param) {
+        case INVERSION:
+            invert(img);
+            break;
+        case H_FLIP:
+            horizontal_flip(img);
+            break;
+        case V_FLIP:
+            vertical_flip(img);
+            break;
+        case C_ROTATE:
+            rotate_left(img);
+            break;
+        case AC_ROTATE:
+            rotate_right(img);
+            break;
+        default:
+            // Never happen
+            break;
+    }
+}
+template <typename T>
+void process_file(image<T>& img, transform_type param, FILE* fin, FILE* fout) {
+    fread(img.data, sizeof(T), img.w * img.h, fin);
+    do_transform(img, param);
+    write_file(fout, img);
+    delete[](img.data);
 }
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
-        cout << "Wrong number of arguments!";
-        return 0;
+        print_err(PARAMS_ERR);
+        return 1;
     }
 
     FILE *fin = fopen(argv[1], "rb");
     if (!fin) {
-        cout << "Incorrect name of an input file!";
+        print_err(FILE_OPEN_ERR);
         fclose(fin);
-        return 0;
+        return 1;
+    }
+
+    bool out_exists = file_exists(argv[2]);
+
+    transform_type param;
+    if (is_number(argv[3])) {
+        char* endptr;
+        int arg3 = (int) strtol(argv[3], &endptr, 10);
+        if (argv[3] == endptr || arg3 < 0 || arg3 > 4) {
+            print_err(PARAMS_ERR);
+            fclose(fin);
+            if (!out_exists) {
+                remove(argv[2]);
+            }
+            return 1;
+        }
+        param = (transform_type) arg3;
+    } else {
+        print_err(PARAMS_ERR);
+        fclose(fin);
+        if (!out_exists) {
+            remove(argv[2]);
+        }
+        return 1;
     }
 
     FILE *fout = fopen(argv[2], "wb");
     if (!fout) {
-        cout << "Incorrect name of an output file!";
+        print_err(FILE_OPEN_ERR);
         fclose(fin);
         fclose(fout);
-        remove(argv[2]);
-        return 0;
-    }
-    int param = 0;
-    if (is_number(argv[3])) {
-        param = atoi(argv[3]);
-        if (param < 0 || param > 4) {
-            cout << "Incorrect transformation type";
-            fclose(fin);
-            fclose(fout);
-            remove(argv[2]);
-            return 0;
-        }
-    } else {
-        cout << "Incorrect transformation type";
-        fclose(fin);
-        fclose(fout);
-        remove(argv[2]);
-        return 0;
+        return 1;
     }
 
-    int type, w, h, max_val;
-    int i = fscanf(fin, "P%i%i%i%i\n", &type, &w, &h, &max_val);
+    int w, h, max_val;
+    file_type type;
+    int i = fscanf(fin, "P%i%i%i%i\n", &type, &w, &h, &max_val); // NOLINT(cert-err34-c)
     if (i != 4) {
-        cout << "File format is not supporting";
+        print_err(FILE_FORMAT_ERR);
         fclose(fin);
         fclose(fout);
-        remove(argv[2]);
-        return 0;
+        if (out_exists) {
+            remove(argv[2]);
+        }
+        return 1;
     }
-    if (type != 5 && type != 6) {
-        cout << "File format is not supporting";
+    if (type != P5 && type != P6) {
+        print_err(FILE_FORMAT_ERR);
         fclose(fin);
         fclose(fout);
-        remove(argv[2]);
-        return 0;
+        if (out_exists) {
+            remove(argv[2]);
+        }
+        return 1;
     }
 
-    uchar *data;
-
-    if (type == 6) {
-        data = new uchar[w * h * 3];
-        fread(data, 2, w * h * 3, fin);
-        auto *pixels = (color_pixel *) data;
-        do_transform(pixels, w, h, max_val, param);
-        write_file(fout, pixels, w, h, type, max_val);
-    } else {
-        data = new uchar[w * h];
-        fread(data, 2, w * h, fin);
-        auto *pixels = (mono_pixel *) data;
-        do_transform(pixels, w, h, max_val, param);
-        write_file(fout, pixels, w, h, type, max_val);
+    switch (type) {
+        case P5: {
+            auto data = new (nothrow) mono_pixel[w * h];
+            if (data == nullptr) {
+                print_err(MEMORY_ALLOCATION_ERR);
+                fclose(fin);
+                fclose(fout);
+                return 1;
+            }
+            image<mono_pixel> img = {type, w, h, max_val, data};
+            process_file(img, param, fin, fout);
+            fclose(fout);
+            delete[](img.data);
+            break;
+        }
+        case P6: {
+            auto data = new (nothrow) color_pixel[w * h];
+            if (data == nullptr) {
+                print_err(MEMORY_ALLOCATION_ERR);
+                fclose(fin);
+                fclose(fout);
+                return 1;
+            }
+            image<color_pixel> img = {type, w, h, max_val, data};
+            process_file(img, param, fin, fout);
+            fclose(fout);
+            delete[](img.data);
+            break;
+        }
+        default:
+            // Never happen
+            break;
     }
 
-    fclose(fout);
+    return 0;
 }
