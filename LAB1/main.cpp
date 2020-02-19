@@ -119,7 +119,7 @@ template<typename T>
 void horizontal_flip(image<T> &img) {
     for (int i = 0; i < img.h; i++) {
         for (int j = 0; j < img.w / 2; j++) {
-            swap_pixels(img, j, i, img.w - j, i);
+            swap_pixels(img, j, i, img.w - j - 1, i);
         }
     }
 }
@@ -128,7 +128,7 @@ template<typename T>
 void vertical_flip(image<T> &img) {
     for (int i = 0; i < img.h / 2; i++) {
         for (int j = 0; j < img.w; j++) {
-            swap_pixels(img, j, i, j, img.h - i);
+            swap_pixels(img, j, i, j, img.h - i - 1);
         }
     }
 }
@@ -198,8 +198,18 @@ void do_transform(image<T> &img, transform_type param) {
 }
 
 template<typename T>
-void process_file(image<T> &img, transform_type param, FILE *fin, FILE *fout) {
-    fread(img.data, sizeof(T), img.w * img.h, fin);
+void process_file(image<T> &img, transform_type param, FILE *fin, FILE *fout,
+                  char* out_name, bool out_exists)
+{
+    int check = fread(img.data, sizeof(T), img.w * img.h, fin);
+    if (check < sizeof(T) * img.w * img.h) {
+        print_err(FILE_FORMAT_ERR);
+        fclose(fin);
+        if (!out_exists) {
+            remove(out_name);
+        }
+        exit(1);
+    }
     do_transform(img, param);
     write_file(fout, img);
     delete[](img.data);
@@ -253,11 +263,11 @@ int main(int argc, char *argv[]) {
     int w, h, max_val;
     file_type type;
     int i = fscanf(fin, "P%i%i%i%i\n", &type, &w, &h, &max_val); // NOLINT(cert-err34-c)
-    if (i != 4 || w <= 0 || h <= 0) {
+    if (i != 4 || w <= 0 || h <= 0 || max_val <= 0) {
         print_err(FILE_FORMAT_ERR);
         fclose(fin);
         fclose(fout);
-        if (out_exists) {
+        if (!out_exists) {
             remove(argv[2]);
         }
         return 1;
@@ -266,7 +276,7 @@ int main(int argc, char *argv[]) {
         print_err(FILE_FORMAT_ERR);
         fclose(fin);
         fclose(fout);
-        if (out_exists) {
+        if (!out_exists) {
             remove(argv[2]);
         }
         return 1;
@@ -277,12 +287,15 @@ int main(int argc, char *argv[]) {
             try {
                 auto data = new mono_pixel[w * h];
                 image<mono_pixel> img = {type, w, h, max_val, data};
-                process_file(img, param, fin, fout);
+                process_file(img, param, fin, fout, argv[2], out_exists);
                 fclose(fout);
             } catch (bad_alloc &) {
                 print_err(MEMORY_ALLOCATION_ERR);
                 fclose(fin);
                 fclose(fout);
+                if (!out_exists) {
+                    remove(argv[2]);
+                }
                 return 1;
             }
             break;
@@ -291,12 +304,15 @@ int main(int argc, char *argv[]) {
             try {
                 auto data = new color_pixel[w * h];
                 image<color_pixel> img = {type, w, h, max_val, data};
-                process_file(img, param, fin, fout);
+                process_file(img, param, fin, fout, argv[2], out_exists);
                 fclose(fout);
             } catch (bad_alloc &) {
                 print_err(MEMORY_ALLOCATION_ERR);
                 fclose(fin);
                 fclose(fout);
+                if (!out_exists) {
+                    remove(argv[2]);
+                }
                 return 1;
             }
             break;
