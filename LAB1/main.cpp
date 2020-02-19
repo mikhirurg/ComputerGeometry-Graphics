@@ -38,15 +38,15 @@ struct color_pixel {
     uchar r, g, b;
 };
 
-template <typename T>
+template<typename T>
 struct image {
     file_type type;
     int w, h;
     int max_val;
-    T* data;
+    T *data;
 };
 
-bool is_number(const string& s) {
+bool is_number(const string &s) {
     for (auto c : s) {
         if (!isdigit(c)) {
             return false;
@@ -56,9 +56,9 @@ bool is_number(const string& s) {
 }
 
 
-bool file_exists(const char* s) {
+bool file_exists(const char *s) {
     FILE *file;
-    file = fopen((const char*) s, "r");
+    file = fopen((const char *) s, "r");
     if (file) {
         fclose(file);
         return true;
@@ -86,7 +86,7 @@ void print_err(error err) {
     }
 }
 
-void invert(image<color_pixel>& img) {
+void invert(image<color_pixel> &img) {
     for (int i = 0; i < img.h; i++) {
         for (int j = 0; j < img.w; ++j) {
             img.data[i * img.w + j].r = img.max_val - img.data[i * img.w + j].r;
@@ -97,25 +97,26 @@ void invert(image<color_pixel>& img) {
 }
 
 
-void invert(image<mono_pixel>& img) {
+void invert(image<mono_pixel> &img) {
     for (int i = 0; i < img.h; i++) {
         for (int j = 0; j < img.w; ++j) {
-            img.data[i * img.w + j].val = img.max_val - img.data[i * img.w + j].val;
+            img.data[i * img.w + j].val =
+                    img.max_val - img.data[i * img.w + j].val;
         }
     }
 }
 
-template <typename T>
-void swap_pixels(image<T>& img, int x1, int y1, int x2, int y2) {
-    if (x1 < img.w && x1 >= 0 && y1 < img.h && y1 >= 0 && x2 < img.w && x2 >= 0 &&
-        y2 < img.h && y2 >= 0)
-    {
+template<typename T>
+void swap_pixels(image<T> &img, int x1, int y1, int x2, int y2) {
+    if (x1 < img.w && x1 >= 0 && y1 < img.h && y1 >= 0 && x2 < img.w &&
+        x2 >= 0 &&
+        y2 < img.h && y2 >= 0) {
         swap(img.data[y1 * img.w + x1], img.data[y2 * img.w + x2]);
     }
 }
 
-template <typename T>
-void horizontal_flip(image<T>& img) {
+template<typename T>
+void horizontal_flip(image<T> &img) {
     for (int i = 0; i < img.h; i++) {
         for (int j = 0; j < img.w / 2; j++) {
             swap_pixels(img, j, i, img.w - j, i);
@@ -123,8 +124,8 @@ void horizontal_flip(image<T>& img) {
     }
 }
 
-template <typename T>
-void vertical_flip(image<T>& img) {
+template<typename T>
+void vertical_flip(image<T> &img) {
     for (int i = 0; i < img.h / 2; i++) {
         for (int j = 0; j < img.w; j++) {
             swap_pixels(img, j, i, j, img.h - i);
@@ -132,9 +133,9 @@ void vertical_flip(image<T>& img) {
     }
 }
 
-template <typename T>
-void rotate_left(image<T>& img) {
-    auto* tmp = new (nothrow) T[img.w * img.h];
+template<typename T>
+void rotate_left(image<T> &img) {
+    auto *tmp = new T[img.w * img.h];
     int k = 0;
     for (int j = 0; j < img.w; j++) {
         for (int i = img.h - 1; i >= 0; i--) {
@@ -147,8 +148,8 @@ void rotate_left(image<T>& img) {
     swap(img.w, img.h);
 }
 
-template <typename T>
-void rotate_right(image<T>& img) {
+template<typename T>
+void rotate_right(image<T> &img) {
     auto *tmp = new T[img.w * img.h];
     int k = 0;
     for (int j = img.w - 1; j >= 0; j--) {
@@ -162,17 +163,18 @@ void rotate_right(image<T>& img) {
     swap(img.w, img.h);
 }
 
-template <typename T>
-void write_file(FILE* f, const image<T>& img) {
+template<typename T>
+void write_file(FILE *f, const image<T> &img) {
     char head[MAX_HEADER_SIZE];
-    int len = snprintf(head, MAX_HEADER_SIZE, "P%i\n%i %i\n%i\n", img.type, img.w, img.h, img.max_val);
+    int len = snprintf(head, MAX_HEADER_SIZE, "P%i\n%i %i\n%i\n", img.type,
+                       img.w, img.h, img.max_val);
     fwrite(head, 1, len, f);
-    auto* buf = (uchar *) img.data;
+    auto *buf = (uchar *) img.data;
     fwrite(buf, sizeof(T), img.w * img.h, f);
 }
 
-template <typename T>
-void do_transform(image<T>& img, transform_type param) {
+template<typename T>
+void do_transform(image<T> &img, transform_type param) {
     switch (param) {
         case INVERSION:
             invert(img);
@@ -194,8 +196,9 @@ void do_transform(image<T>& img, transform_type param) {
             break;
     }
 }
-template <typename T>
-void process_file(image<T>& img, transform_type param, FILE* fin, FILE* fout) {
+
+template<typename T>
+void process_file(image<T> &img, transform_type param, FILE *fin, FILE *fout) {
     fread(img.data, sizeof(T), img.w * img.h, fin);
     do_transform(img, param);
     write_file(fout, img);
@@ -219,7 +222,7 @@ int main(int argc, char *argv[]) {
 
     transform_type param;
     if (is_number(argv[3])) {
-        char* endptr;
+        char *endptr;
         int arg3 = (int) strtol(argv[3], &endptr, 10);
         if (argv[3] == endptr || arg3 < 0 || arg3 > 4) {
             print_err(PARAMS_ERR);
@@ -271,29 +274,31 @@ int main(int argc, char *argv[]) {
 
     switch (type) {
         case P5: {
-            auto data = new (nothrow) mono_pixel[w * h];
-            if (data == nullptr) {
+            try {
+                auto data = new mono_pixel[w * h];
+                image<mono_pixel> img = {type, w, h, max_val, data};
+                process_file(img, param, fin, fout);
+                fclose(fout);
+            } catch (bad_alloc &) {
                 print_err(MEMORY_ALLOCATION_ERR);
                 fclose(fin);
                 fclose(fout);
                 return 1;
             }
-            image<mono_pixel> img = {type, w, h, max_val, data};
-            process_file(img, param, fin, fout);
-            fclose(fout);
             break;
         }
         case P6: {
-            auto data = new (nothrow) color_pixel[w * h];
-            if (data == nullptr) {
+            try {
+                auto data = new color_pixel[w * h];
+                image<color_pixel> img = {type, w, h, max_val, data};
+                process_file(img, param, fin, fout);
+                fclose(fout);
+            } catch (bad_alloc &) {
                 print_err(MEMORY_ALLOCATION_ERR);
                 fclose(fin);
                 fclose(fout);
                 return 1;
             }
-            image<color_pixel> img = {type, w, h, max_val, data};
-            process_file(img, param, fin, fout);
-            fclose(fout);
             break;
         }
         default:
