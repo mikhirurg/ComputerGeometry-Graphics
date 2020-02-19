@@ -206,7 +206,7 @@ void process_file(image<T> &img, transform_type param, FILE *fin, FILE *fout) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 3) {
+    if (argc != 4) {
         print_err(PARAMS_ERR);
         return 1;
     }
@@ -253,7 +253,7 @@ int main(int argc, char *argv[]) {
     int w, h, max_val;
     file_type type;
     int i = fscanf(fin, "P%i%i%i%i\n", &type, &w, &h, &max_val); // NOLINT(cert-err34-c)
-    if (i != 4) {
+    if (i != 4 || w <= 0 || h <= 0) {
         print_err(FILE_FORMAT_ERR);
         fclose(fin);
         fclose(fout);
