@@ -199,10 +199,9 @@ void do_transform(image<T> &img, transform_type param) {
 
 template<typename T>
 void process_file(image<T> &img, transform_type param, FILE *fin, FILE *fout,
-                  char* out_name, bool out_exists)
-{
+                  char *out_name, bool out_exists) {
     int check = fread(img.data, sizeof(T), img.w * img.h, fin);
-    if (check < sizeof(T) * img.w * img.h) {
+    if (check != img.w * img.h) {
         print_err(FILE_FORMAT_ERR);
         fclose(fin);
         if (!out_exists) {
@@ -229,6 +228,16 @@ int main(int argc, char *argv[]) {
     }
 
     bool out_exists = file_exists(argv[2]);
+    FILE *fout = fopen(argv[2], "wb");
+    if (!fout) {
+        print_err(FILE_OPEN_ERR);
+        fclose(fin);
+        fclose(fout);
+        if (!out_exists) {
+            remove(argv[2]);
+        }
+        return 1;
+    }
 
     transform_type param;
     if (is_number(argv[3])) {
@@ -252,14 +261,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    FILE *fout = fopen(argv[2], "wb");
-    if (!fout) {
-        print_err(FILE_OPEN_ERR);
-        fclose(fin);
-        fclose(fout);
-        return 1;
-    }
-
     int w, h, max_val;
     file_type type;
     int i = fscanf(fin, "P%i%i%i%i\n", &type, &w, &h, &max_val); // NOLINT(cert-err34-c)
@@ -275,7 +276,6 @@ int main(int argc, char *argv[]) {
     if (type != P5 && type != P6) {
         print_err(FILE_FORMAT_ERR);
         fclose(fin);
-        fclose(fout);
         if (!out_exists) {
             remove(argv[2]);
         }
