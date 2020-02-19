@@ -281,7 +281,6 @@ int main(int argc, char *argv[]) {
             image<mono_pixel> img = {type, w, h, max_val, data};
             process_file(img, param, fin, fout);
             fclose(fout);
-            delete[](img.data);
             break;
         }
         case P6: {
@@ -295,13 +294,11 @@ int main(int argc, char *argv[]) {
             image<color_pixel> img = {type, w, h, max_val, data};
             process_file(img, param, fin, fout);
             fclose(fout);
-            delete[](img.data);
             break;
         }
         default:
             // Never happen
             break;
     }
-
     return 0;
 }
