@@ -207,6 +207,7 @@ void process_file(image<T> &img, transform_type param, FILE *fin, FILE *fout,
         if (!out_exists) {
             remove(out_name);
         }
+        delete[](img.data);
         exit(1);
     }
     do_transform(img, param);
@@ -223,7 +224,6 @@ int main(int argc, char *argv[]) {
     FILE *fin = fopen(argv[1], "rb");
     if (!fin) {
         print_err(FILE_OPEN_ERR);
-        fclose(fin);
         return 1;
     }
 
@@ -232,7 +232,6 @@ int main(int argc, char *argv[]) {
     if (!fout) {
         print_err(FILE_OPEN_ERR);
         fclose(fin);
-        fclose(fout);
         if (!out_exists) {
             remove(argv[2]);
         }
