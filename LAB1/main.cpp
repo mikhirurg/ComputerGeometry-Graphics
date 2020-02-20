@@ -20,7 +20,8 @@ enum error {
     FILE_OPEN_ERR,
     FILE_FORMAT_ERR,
     MEMORY_ALLOCATION_ERR,
-    PARAMS_ERR
+    PARAMS_ERR,
+    FILE_DELETE_ERR
 };
 
 const int MAX_HEADER_SIZE = 50;
@@ -79,6 +80,9 @@ void print_err(error err) {
             break;
         case PARAMS_ERR:
             cout << "Wrong params!";
+            break;
+        case FILE_DELETE_ERR:
+            cout << "File delete error";
             break;
         default:
             cout << "ERROR!";
@@ -204,8 +208,12 @@ void process_file(image<T> &img, transform_type param, FILE *fin, FILE *fout,
     if (check != img.w * img.h) {
         print_err(FILE_FORMAT_ERR);
         fclose(fin);
+        fclose(fout);
         if (!out_exists) {
-            remove(out_name);
+            int result = remove(out_name);
+            if (result != 0) {
+                print_err(FILE_DELETE_ERR);
+            }
         }
         delete[](img.data);
         exit(1);
@@ -232,8 +240,9 @@ int main(int argc, char *argv[]) {
     if (!fout) {
         print_err(FILE_OPEN_ERR);
         fclose(fin);
-        if (!out_exists) {
-            remove(argv[2]);
+        int result = remove(argv[2]);
+        if (result != 0) {
+            print_err(FILE_DELETE_ERR);
         }
         return 1;
     }
@@ -245,8 +254,10 @@ int main(int argc, char *argv[]) {
         if (argv[3] == endptr || arg3 < 0 || arg3 > 4) {
             print_err(PARAMS_ERR);
             fclose(fin);
-            if (!out_exists) {
-                remove(argv[2]);
+            fclose(fout);
+            int result = remove(argv[2]);
+            if (result != 0) {
+                print_err(FILE_DELETE_ERR);
             }
             return 1;
         }
@@ -254,8 +265,10 @@ int main(int argc, char *argv[]) {
     } else {
         print_err(PARAMS_ERR);
         fclose(fin);
-        if (!out_exists) {
-            remove(argv[2]);
+        fclose(fout);
+        int result = remove(argv[2]);
+        if (result != 0) {
+            print_err(FILE_DELETE_ERR);
         }
         return 1;
     }
@@ -267,16 +280,19 @@ int main(int argc, char *argv[]) {
         print_err(FILE_FORMAT_ERR);
         fclose(fin);
         fclose(fout);
-        if (!out_exists) {
-            remove(argv[2]);
+        int result = remove(argv[2]);
+        if (result != 0) {
+            print_err(FILE_DELETE_ERR);
         }
         return 1;
     }
     if (type != P5 && type != P6) {
         print_err(FILE_FORMAT_ERR);
         fclose(fin);
-        if (!out_exists) {
-            remove(argv[2]);
+        fclose(fout);
+        int result = remove(argv[2]);
+        if (result != 0) {
+            print_err(FILE_DELETE_ERR);
         }
         return 1;
     }
@@ -292,8 +308,9 @@ int main(int argc, char *argv[]) {
                 print_err(MEMORY_ALLOCATION_ERR);
                 fclose(fin);
                 fclose(fout);
-                if (!out_exists) {
-                    remove(argv[2]);
+                int result = remove(argv[2]);
+                if (result != 0) {
+                    print_err(FILE_DELETE_ERR);
                 }
                 return 1;
             }
@@ -309,8 +326,9 @@ int main(int argc, char *argv[]) {
                 print_err(MEMORY_ALLOCATION_ERR);
                 fclose(fin);
                 fclose(fout);
-                if (!out_exists) {
-                    remove(argv[2]);
+                int result = remove(argv[2]);
+                if (result != 0) {
+                    print_err(FILE_DELETE_ERR);
                 }
                 return 1;
             }
