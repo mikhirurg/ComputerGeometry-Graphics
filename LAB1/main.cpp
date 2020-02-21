@@ -2,7 +2,6 @@
 // Created by mikha on 16.02.2020.
 //
 typedef unsigned char uchar;
-
 #include <iostream>
 #include <string>
 
