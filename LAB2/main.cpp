@@ -142,7 +142,7 @@ void draw_line(image<T> &img, int brightness, double line_width, double x1,
         plot(img, y1, x1, brightness, gamma);
         plot(img, y2, x2, brightness, gamma);
         double y = y1 + delta;
-        for (double x = x1 + 1.0; x < x2; x) {
+        for (double x = x1 + 1.0; x < x2; x++) {
             plot(img, intPart(y), x, (double) brightness * (1.0 - floatPart(y)), gamma);
             plot(img, intPart(y) + 1.0, x, (double) brightness * floatPart(y), gamma);
             y += delta;
