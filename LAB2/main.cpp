@@ -106,7 +106,10 @@ void write_file(FILE *f, const image<T> &img) {
 }
 
 void plot(image<mono_pixel> &img, double x, double y, double c, double gamma) {
-    img.data[(int) (y * img.w + x)].val = pow(c / img.max_val, 1 / gamma) * img.max_val;
+    if (x >= 0 && y >= 0 && x < img.w && y < img.h) {
+        img.data[(int) (y * img.w + x)].val =
+                pow(c / img.max_val, 1 / gamma) * img.max_val;
+    }
 }
 
 double intPart(double x) {
