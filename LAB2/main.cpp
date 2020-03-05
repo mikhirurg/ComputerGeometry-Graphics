@@ -75,22 +75,22 @@ bool file_exists(const char *s) {
 void print_err(error err) {
     switch (err) {
         case FILE_OPEN_ERR:
-            cout << "Can't open file!";
+            cerr << "Can't open file!";
             break;
         case FILE_FORMAT_ERR:
-            cout << "Unsupported file format!";
+            cerr << "Unsupported file format!";
             break;
         case MEMORY_ALLOCATION_ERR:
-            cout << "Can't allocate memory!";
+            cerr << "Can't allocate memory!";
             break;
         case PARAMS_ERR:
-            cout << "Wrong params!";
+            cerr << "Wrong params!";
             break;
         case FILE_DELETE_ERR:
-            cout << "File delete error";
+            cerr << "File delete error";
             break;
         default:
-            cout << "ERROR!";
+            cerr << "ERROR!";
             break;
     }
 }
@@ -121,10 +121,10 @@ double floatPart(double x) {
 }
 
 template<typename T>
-void draw_line(image<T> &img, int brightness, double line_width, double x1,
+void draw_line(image<T> &img, double brightness, double line_width, double x1,
                double y1, double x2, double y2, double gamma) {
     bool check = abs(y2 - y1) > abs(x2 - x1);
-
+    brightness = pow((brightness / 255.0), gamma) * 255.0;
     if (check) {
         swap(x1, y1);
         swap(x2, y2);
