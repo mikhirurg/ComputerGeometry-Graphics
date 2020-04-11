@@ -1,13 +1,11 @@
 //
-// Created by mikha on 16.02.2020.
+// Created by mikha on 18.03.2020.
 //
 typedef unsigned char uchar;
 
 #include <iostream>
 #include <string>
 #include <cmath>
-#include <vector>
-#include <algorithm>
 
 using namespace std;
 
@@ -111,7 +109,6 @@ void plot(image<mono_pixel> &img, double x, double y, double c, double gamma) {
     if (x >= 0 && y >= 0 && x < img.w && y < img.h) {
         img.data[(int) (y * img.w + x)].val =
                 pow(c / img.max_val, 1 / gamma) * img.max_val;
-        cout << x << " " << y << endl;
     }
 }
 
@@ -122,19 +119,6 @@ double intPart(double x) {
 double floatPart(double x) {
     return x - floor(x);
 }
-
-struct comp_x{
-    bool operator()(pair<double, double> o1, pair<double, double> o2){
-        return o1.first > o1.first;
-    }
-};
-
-struct comp_y{
-    bool operator()(pair<double, double> o1, pair<double, double> o2){
-        return o1.second > o1.second;
-    }
-};
-
 
 template<typename T>
 void draw_line(image<T> &img, double brightness, double line_width, double x1,
@@ -156,74 +140,26 @@ void draw_line(image<T> &img, double brightness, double line_width, double x1,
     if (dx == 0.0) {
         delta = 1.0;
     }
-    cout << delta << endl << endl;
 
-    double alpha = atan(delta);
-
-    vector<pair<double, double>> dots;
-
-    pair<double, double> dot = {x1 + (line_width / 2) * cos(alpha), y1 + (line_width / 2) * sin(alpha)};
-    dots.push_back(dot);
-    dot = {x1 - (line_width / 2) * cos(alpha), y1 - (line_width / 2) * sin(alpha)};
-    dots.push_back(dot);
-    dot = {x2 + (line_width / 2) * cos(alpha), y2 + (line_width / 2) * sin(alpha)};
-    dots.push_back(dot);
-    dot = {x2 - (line_width / 2) * cos(alpha), y2 - (line_width / 2) * sin(alpha)};
-    dots.push_back(dot);
-
-    double max_x = INT32_MIN;
-    double max_y = INT32_MIN;
-    double min_x = INT32_MAX;
-    double min_y = INT32_MAX;
-
-    for (int i = 0; i < dots.size(); i++) {
-        if (dots[i].first > max_x) {
-            max_x = dots[i].first;
-        }
-        if (dots[i].first < min_x) {
-            min_x = dots[i].first;
-        }
-        if (dots[i].second > max_y) {
-            max_y = dots[i].second;
-        }
-        if (dots[i].second < min_y) {
-            min_y = dots[i].second;
-        }
-    }
-
-    bool line = false;
-
-    sort(dots.begin(), dots.end(), comp_y());
-
-    for (int step_y = min_y; step_y < max_y; step_y++) {
-        double x_start = max((dots[2].first - dots[0].first) * (step_y - dots[0].second) / (dots[2].second - dots[0].second) + dots[0].first,
-                             (dots[2].first - dots[3].first) * (step_y - dots[2].second) / (dots[3].second - dots[2].second) + dots[2].first);
-        double x_end = min((dots[0].first - dots[1].first) * (step_y - dots[0].second) / (dots[1].second - dots[1].second) + dots[0].first,
-                           (dots[1].first - dots[1].first) * (step_y - dots[3].second) / (dots[3].second - dots[1].second) + dots[1].first);
-        for (double step_x = x_start; step_x < x_end; step_x++) {
-            plot(img, step_x, step_y, brightness, gamma);
-        }
-    }
-
-
-
-    /*if (check) {
+    if (check) {
+        plot(img, y1, x1, brightness, gamma);
+        plot(img, y2, x2, brightness, gamma);
         double y = y1 + delta;
-        for (int x = round(x1); x < round(x2); x++) {
-            for (int y_step = intPart(y - (line_width - 1) / 2); y_step <= (line_width + intPart(y - (line_width - 1) / 2)); y_step++) {
-                plot(img, y_step, x, brightness * min(((line_width + 1) / 2 - abs(y - y_step)), 1.0), gamma);
-            }
+        for (double x = x1 + 1.0; x < x2; x++) {
+            plot(img, intPart(y), x, (double) brightness * (1.0 - floatPart(y)), gamma);
+            plot(img, intPart(y) + 1.0, x, (double) brightness * floatPart(y), gamma);
             y += delta;
         }
     } else {
+        plot(img, x1, y1, brightness, gamma);
+        plot(img, x2, y2, brightness, gamma);
         double y = y1 + delta;
-        for (int x = round(x1); x < round(x2); x++) {
-            for (int y_step = intPart(y - (line_width - 1) / 2); y_step <= (line_width + intPart(y - (line_width - 1) / 2)); y_step++) {
-                plot(img, x, y_step, brightness * min(((line_width + 1) / 2 - abs(y - y_step)), 1.0), gamma);
-            }
+        for (double x = x1 + 1.0; x < x2; x++) {
+            plot(img, x, intPart(y), (double) brightness * (1.0 - floatPart(y)), gamma);
+            plot(img, x, intPart(y) + 1.0, (double) brightness * floatPart(y), gamma);
             y += delta;
         }
-    }*/
+    }
 }
 
 template<typename T>
