@@ -5,7 +5,6 @@
 #include "CImageFileOpenException.h"
 
 CImageFileOpenException::CImageFileOpenException()
-: CImageException("EXCEPTION: Cannot open file!")
-{
+    : CImageException("EXCEPTION: Cannot open file!") {
 
 }

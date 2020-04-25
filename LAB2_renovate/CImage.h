@@ -24,22 +24,22 @@ struct CColorPixel {
   uchar r, g, b;
 };
 
-template <class T>
+template<class T>
 class CImage {
  public:
-  CImage(const std::string& fname);
+  explicit CImage(const std::string &fname);
 
-  CImage(const std::string& fname, file_type type, int w, int h, int max_val);
+  CImage(const std::string &fname, file_type type, int w, int h, int max_val);
 
-  CImage(const std::string& fname, file_type type, int w, int h, int max_val, const T* &data);
+  CImage(const std::string &fname, file_type type, int w, int h, int max_val, const T *&data);
 
   CImage(int w, int h, int max_val, file_type type);
 
-  CImage(const CImage& img);
+  CImage(const CImage &img);
 
   ~CImage();
 
-  void writeImg(const std::string& fname);
+  void writeImg(const std::string &fname);
 
   void writeImg();
 
@@ -47,7 +47,7 @@ class CImage {
 
   void putPixel(int x, int y, T pixel);
 
-  T* operator[](int i);
+  T *operator[](int i);
 
   int getWidth() const;
 
@@ -58,7 +58,6 @@ class CImage {
   void drawLine(uchar bright, double thickness, double x1, double y1, double x2,
                 double y2, double gamma);
 
-
  private:
   const double eps = 1e-10;
   const int MAX_HEADER_SIZE = 50;
@@ -67,6 +66,7 @@ class CImage {
   int w_, h_;
   int max_val_;
   T *data_;
+
   bool FileExists(const char *s);
 
   struct Edge {
@@ -79,7 +79,7 @@ class CImage {
     double x;
     double y;
     int last_point;
-    Edge* edge;
+    Edge *edge;
   };
 
   struct Polygon {
@@ -96,10 +96,10 @@ class CImage {
 
     std::vector<Point> points;
     std::vector<Edge> active;
-    std::vector<Edge*> active_list;
+    std::vector<Edge *> active_list;
     int nact;
 
-    Polygon() : points(),active(),active_list(),nact(0) {
+    Polygon() : points(), active(), active_list(), nact(0) {
       y_min = DBL_MAX;
       y_max = DBL_MIN;
     }
@@ -113,7 +113,7 @@ class CImage {
       active.push_back(Edge());
     }
 
-    void GroupAdd(const std::vector<std::pair<double, double>>& points_group) {
+    void GroupAdd(const std::vector<std::pair<double, double>> &points_group) {
       for (std::pair<double, double> p : points_group) {
         Point point = {p.first, p.second};
         point.last_point = 0;
@@ -133,11 +133,11 @@ class CImage {
       return points.size();
     }
 
-    Point& operator [](int i) {
+    Point &operator[](int i) {
       return points[(i + points.size()) % points.size()];
     }
 
-    void delActive(Edge* e);
+    void delActive(Edge *e);
 
     void addActive(int pnt, int cy);
 
@@ -145,8 +145,7 @@ class CImage {
 
   };
 
-
-  void FillPolygon(Polygon& polygon, CImage<T>& img, T color);
+  void FillPolygon(Polygon &polygon, CImage<T> &img, T color);
 
   void plot(CImage &img, double x, double y, double c, CMonoPixel bright, double gamma);
 
@@ -156,20 +155,25 @@ class CImage {
 
   std::vector<std::pair<double, double>> CalculateLineBorderPoints(double thickness, double x1, double y1,
                                                                    double x2, double y2);
-  void ScaleBorderPoints(std::vector<std::pair<double, double>>& points, int scale_x, int scale_y);
+  void ScaleBorderPoints(std::vector<std::pair<double, double>> &points, int scale_x, int scale_y);
 
-  std::pair<double, double> GetScaledBounds(const std::vector<std::pair<double, double>>& points, int scale_x, int scale_y);
+  std::pair<double, double> GetScaledBounds(const std::vector<std::pair<double, double>> &points,
+                                            int scale_x,
+                                            int scale_y);
 
-  std::pair<double, double> GetUpperCorner(const std::vector<std::pair<double, double>>& points);
+  std::pair<double, double> GetUpperCorner(const std::vector<std::pair<double, double>> &points);
 
-  void DrawDownscaled(const CImage<CMonoPixel>& img, int scale_x, int scale_y, const std::pair<double, double>& start_coord, T bright,
+  void DrawDownscaled(const CImage<CMonoPixel> &img,
+                      int scale_x,
+                      int scale_y,
+                      const std::pair<double, double> &start_coord,
+                      T bright,
                       double gamma);
 
   void DrawWuLine(CMonoPixel bright, double thickness, double x1, double y1, double x2,
                   double y2, double gamma);
 
-  void ShiftPoints(std::vector<std::pair<double, double>>& points, double shift_x, double shift_y);
+  void ShiftPoints(std::vector<std::pair<double, double>> &points, double shift_x, double shift_y);
 };
-
 
 #endif //COMPUTERGEOMETRY_GRAPHICS_CIMAGE_H

@@ -5,7 +5,6 @@
 #include "CImageParamsException.h"
 
 CImageParamsException::CImageParamsException()
-: CImageException("EXCEPTION: Wrong params!")
-{
+    : CImageException("EXCEPTION: Wrong params!") {
 
 }

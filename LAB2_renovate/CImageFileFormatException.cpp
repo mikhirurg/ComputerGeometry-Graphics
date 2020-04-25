@@ -5,7 +5,6 @@
 #include "CImageFileFormatException.h"
 
 CImageFileFormatException::CImageFileFormatException()
-: CImageException("EXCEPTION: Wrong file format!")
-{
+    : CImageException("EXCEPTION: Wrong file format!") {
 
 }

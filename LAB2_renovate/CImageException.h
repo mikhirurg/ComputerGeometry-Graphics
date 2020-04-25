@@ -8,14 +8,13 @@
 #include <string>
 
 class CImageException {
-public:
-    CImageException(const std::string& err_m);
+ public:
+  CImageException(const std::string &err_m);
 
-    const char* getErr();
+  const char *getErr();
 
-private:
-    std::string err_m_;
+ private:
+  std::string err_m_;
 };
-
 
 #endif //COMPUTERGEOMETRY_GRAPHICS_CIMAGEEXCEPTION_H

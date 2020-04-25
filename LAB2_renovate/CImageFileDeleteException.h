@@ -7,10 +7,9 @@
 
 #include "CImageException.h"
 
-class CImageFileDeleteException: public CImageException {
-public:
-    CImageFileDeleteException();
+class CImageFileDeleteException : public CImageException {
+ public:
+  CImageFileDeleteException();
 };
-
 
 #endif //COMPUTERGEOMETRY_GRAPHICS_CIMAGEFILEDELETEEXCEPTION_H

@@ -7,10 +7,9 @@
 
 #include "CImageException.h"
 
-class CImageMemAllocException: public CImageException {
-public:
-    CImageMemAllocException();
+class CImageMemAllocException : public CImageException {
+ public:
+  CImageMemAllocException();
 };
-
 
 #endif //COMPUTERGEOMETRY_GRAPHICS_CIMAGEMEMALLOCEXCEPTION_H

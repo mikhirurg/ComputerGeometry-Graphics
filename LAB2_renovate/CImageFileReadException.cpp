@@ -5,7 +5,6 @@
 #include "CImageFileReadException.h"
 
 CImageFileReadException::CImageFileReadException()
-: CImageException("EXCEPTION: Error while reading data")
-{
+    : CImageException("EXCEPTION: Error while reading data") {
 
 }

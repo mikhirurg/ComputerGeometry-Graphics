@@ -7,10 +7,9 @@
 
 #include "CImageException.h"
 
-class CImageFileReadException: public CImageException {
-public:
-    CImageFileReadException();
+class CImageFileReadException : public CImageException {
+ public:
+  CImageFileReadException();
 };
-
 
 #endif //COMPUTERGEOMETRY_GRAPHICS_CIMAGEFILEREADEXCEPTION_H

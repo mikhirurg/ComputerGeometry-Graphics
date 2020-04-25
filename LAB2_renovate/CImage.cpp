@@ -431,6 +431,7 @@ void CImage<T>::Polygon::addActive(int p, int cy) {
   Point &np = (*this)[p + 1];
   Point &pnt = (*this)[p];
   Edge &ne = active[nact];
+
   if (pnt.y == np.y) {
     return;
   } else {

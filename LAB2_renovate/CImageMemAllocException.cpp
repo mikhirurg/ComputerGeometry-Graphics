@@ -5,7 +5,6 @@
 #include "CImageMemAllocException.h"
 
 CImageMemAllocException::CImageMemAllocException()
-: CImageException("EXCEPTION: Cannot allocate memory!")
-{
+    : CImageException("EXCEPTION: Cannot allocate memory!") {
 
 }

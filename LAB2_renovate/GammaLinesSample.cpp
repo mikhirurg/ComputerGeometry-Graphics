@@ -4,7 +4,6 @@
 #include <iostream>
 #include "CImage.cpp"
 
-
 int main() {
   try {
     CImage<CMonoPixel> img("test.pgm");

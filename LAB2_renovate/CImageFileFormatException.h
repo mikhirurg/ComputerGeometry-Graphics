@@ -7,10 +7,9 @@
 
 #include "CImageException.h"
 
-class CImageFileFormatException: public CImageException {
-public:
-    CImageFileFormatException();
+class CImageFileFormatException : public CImageException {
+ public:
+  CImageFileFormatException();
 };
-
 
 #endif //COMPUTERGEOMETRY_GRAPHICS_CIMAGEFILEFORMATEXCEPTION_H
