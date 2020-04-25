@@ -10,3 +10,4 @@ set(L2_lib LAB2_renovate/CImageFileOpenException.cpp LAB2_renovate/CImage.cpp LA
 add_executable(ComputerGeometry-Graphics ${SOURCE_FILES})
 add_executable(CircleSample LAB2_renovate/CircleSample.cpp ${L2_lib})
 add_executable(Lab2Full LAB2_renovate/Lab2_Full.cpp ${L2_lib})
+add_executable(GammaLinesSample LAB2_renovate/GammaLinesSample.cpp ${L2_lib})

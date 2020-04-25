@@ -6,7 +6,7 @@
 
 int main(int argc, char *argv[]) {
     try {
-        if (argc != 10) {
+        if (argc != 10 && argc != 9) {
             throw CImageParamsException();
         }
         CImage<CMonoPixel> img = CImage<CMonoPixel>(argv[1]);
@@ -19,7 +19,11 @@ int main(int argc, char *argv[]) {
             y1 = std::stod(argv[6]);
             x2 = std::stod(argv[7]);
             y2 = std::stod(argv[8]);
-            gamma = std::stod(argv[9]);
+            if (argc == 10) {
+              gamma = std::stod(argv[9]);
+            } else {
+              gamma = 2.2;
+            }
         } catch (std::invalid_argument &) {
             throw CImageParamsException();
         }

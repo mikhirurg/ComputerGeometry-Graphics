@@ -4,6 +4,7 @@
 
 #include <map>
 #include <set>
+
 #include "CImage.h"
 #include "CImageFileOpenException.h"
 #include "CImageFileDeleteException.h"
@@ -167,9 +168,11 @@ void CImage<T>::writeImg() {
 
 template<class T>
 T apply_alpha(T bright, T under_color, int a, double gamma) {
-  return {(uchar) pow(((pow(bright.val, gamma) * a +
-                          (255.0 - a) * pow(under_color.val, gamma)) / 255.0),
-                      1.0 / gamma)};
+  double b = under_color.val / 255.0;
+  double f = bright.val / 255.0;
+  double alpha = (double) a / 255.0;
+  double out = pow(pow(f, gamma) * alpha + pow(b, gamma) * (1.0 - alpha), 1.0 / gamma);
+  return {(uchar) (255.0 * out)};
 }
 
 template<class T>
