@@ -10,7 +10,7 @@ int main() {
     int bright = 180;
     img.drawLine(128, 25, 0, 25, 100, 0, 2.2);
     img.drawLine(128, 25, 0, 75, 100, 50, 1);
-    img.writeImg("out.pgm");
+    img.WriteImg("out.pgm");
   } catch (CImageException e) {
     std::cerr << e.getErr();
   }

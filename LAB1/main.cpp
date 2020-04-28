@@ -25,7 +25,7 @@ enum error {
 
 const int MAX_HEADER_SIZE = 50;
 
-enum file_type {
+enum FileType {
     P5 = 5,
     P6
 };
@@ -40,7 +40,7 @@ struct color_pixel {
 
 template<typename T>
 struct image {
-    file_type type;
+    FileType type;
     int w, h;
     int max_val;
     T *data;
@@ -273,7 +273,7 @@ int main(int argc, char *argv[]) {
     }
 
     int w, h, max_val;
-    file_type type;
+    FileType type;
     int i = fscanf(fin, "P%i%i%i%i\n", &type, &w, &h, &max_val); // NOLINT(cert-err34-c)
     if (i != 4 || w <= 0 || h <= 0 || max_val <= 0) {
         print_err(FILE_FORMAT_ERR);

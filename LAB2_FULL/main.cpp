@@ -29,7 +29,7 @@ enum error {
 
 const int MAX_HEADER_SIZE = 50;
 
-enum file_type {
+enum FileType {
     P5 = 5,
     P6
 };
@@ -48,7 +48,7 @@ struct pixel {
 
 template<typename T>
 struct image {
-    file_type type;
+    FileType type;
     int w, h;
     int max_val;
     T *data;
@@ -218,7 +218,7 @@ void draw_line(image<T> &img, double brightness, double line_width, double x1,
     } else {
         double y = y1 + delta;
         for (int x = round(x1); x < round(x2); x++) {
-            for (int y_step = intPart(y - (line_width - 1) / 2); y_step <= (line_width + intPart(y - (line_width - 1) / 2)); y_step++) {
+            for (int y_step = intPart(y - (line_width - 1) / 2); y_step <= (line_width + IntPart(y - (line_width - 1) / 2)); y_step++) {
                 plot(img, x, y_step, brightness * min(((line_width + 1) / 2 - abs(y - y_step)), 1.0), gamma);
             }
             y += delta;
@@ -293,7 +293,7 @@ int main(int argc, char *argv[]) {
     }
 
     int w, h, max_val;
-    file_type type;
+    FileType type;
     int i = fscanf(fin, "P%i%i%i%i\n", &type, &w, &h, &max_val); // NOLINT(cert-err34-c)
     if (i != 4 || w <= 0 || h <= 0 || max_val <= 0) {
         print_err(FILE_FORMAT_ERR);

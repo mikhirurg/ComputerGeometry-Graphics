@@ -11,7 +11,7 @@ typedef unsigned char uchar;
 #include <algorithm>
 #include <cmath>
 
-enum file_type {
+enum FileType {
   P5 = 5,
   P6
 };
@@ -29,11 +29,11 @@ class CImage {
  public:
   explicit CImage(const std::string &fname);
 
-  CImage(const std::string &fname, file_type type, int w, int h, int max_val);
+  CImage(const std::string &fname, FileType type, int w, int h, int max_val);
 
-  CImage(const std::string &fname, file_type type, int w, int h, int max_val, const T *&data);
+  CImage(const std::string &fname, FileType type, int w, int h, int max_val, const T *&data);
 
-  CImage(int w, int h, int max_val, file_type type);
+  CImage(int w, int h, int max_val, FileType type);
 
   CImage(const CImage &img);
 
@@ -43,17 +43,17 @@ class CImage {
 
   void writeImg();
 
-  T getPixel(int x, int y) const;
+  T GetPixel(int x, int y) const;
 
-  void putPixel(int x, int y, T pixel);
+  void PutPixel(int x, int y, T pixel);
 
   T *operator[](int i);
 
-  int getWidth() const;
+  int GetWidth() const;
 
-  int getHeight() const;
+  int GetHeight() const;
 
-  int getMaxVal() const;
+  int GetMaxVal() const;
 
   void drawLine(uchar bright, double thickness, double x1, double y1, double x2,
                 double y2, double gamma);
@@ -62,7 +62,7 @@ class CImage {
   const double eps = 1e-10;
   const int MAX_HEADER_SIZE = 50;
   std::string fname_;
-  file_type type_;
+  FileType type_;
   int w_, h_;
   int max_val_;
   T *data_;
@@ -151,7 +151,7 @@ class CImage {
 
   double intPart(double x);
 
-  double floatPart(double x);
+  double FloatPart(double x);
 
   std::vector<std::pair<double, double>> CalculateLineBorderPoints(double thickness, double x1, double y1,
                                                                    double x2, double y2);

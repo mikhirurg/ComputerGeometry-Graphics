@@ -50,7 +50,7 @@ CImage<T>::~CImage() {
 }
 
 template<typename T>
-CImage<T>::CImage(const std::string &fname, file_type type, int w, int h,
+CImage<T>::CImage(const std::string &fname, FileType type, int w, int h,
                   int max_val)
     : fname_(fname), type_(type), w_(w), h_(h), max_val_(max_val) {
   try {
@@ -61,7 +61,7 @@ CImage<T>::CImage(const std::string &fname, file_type type, int w, int h,
 }
 
 template<typename T>
-CImage<T>::CImage(const std::string &fname, file_type type, int w, int h,
+CImage<T>::CImage(const std::string &fname, FileType type, int w, int h,
                   int max_val, const T *&data)
     : fname_(fname), type_(type), w_(w), h_(h), max_val_(max_val) {
   try {
@@ -77,7 +77,7 @@ CImage<T>::CImage(const std::string &fname, file_type type, int w, int h,
 }
 
 template<class T>
-CImage<T>::CImage(int w, int h, int max_val, file_type type)
+CImage<T>::CImage(int w, int h, int max_val, FileType type)
     : w_(w), h_(h), max_val_(max_val), type_(type) {
   try {
     data_ = new T[w * h];
@@ -90,7 +90,7 @@ CImage<T>::CImage(int w, int h, int max_val, file_type type)
 }
 
 template<typename T>
-T CImage<T>::getPixel(int x, int y) const {
+T CImage<T>::GetPixel(int x, int y) const {
   if (x >= 0 && y >= 0 && x < w_ && y < h_) {
     return data_[y * w_ + x];
   }
@@ -98,7 +98,7 @@ T CImage<T>::getPixel(int x, int y) const {
 }
 
 template<typename T>
-void CImage<T>::putPixel(int x, int y, T pixel) {
+void CImage<T>::PutPixel(int x, int y, T pixel) {
   if (x >= 0 && y >= 0 && x < w_ && y < h_) {
     data_[y * w_ + x] = pixel;
   }
@@ -110,17 +110,17 @@ T *CImage<T>::operator[](int i) {
 }
 
 template<typename T>
-int CImage<T>::getWidth() const {
+int CImage<T>::GetWidth() const {
   return w_;
 }
 
 template<typename T>
-int CImage<T>::getHeight() const {
+int CImage<T>::GetHeight() const {
   return h_;
 }
 
 template<typename T>
-int CImage<T>::getMaxVal() const {
+int CImage<T>::GetMaxVal() const {
   return max_val_;
 }
 
@@ -198,7 +198,7 @@ CImage<T>::drawLine(uchar bright, double thickness, double x1, double y1,
         bounds = GetScaledBounds(points, scale_x, scale_y);
 
     CImage<CMonoPixel>
-        tmp = CImage(bounds.first, bounds.second, getMaxVal(), P5);
+        tmp = CImage(bounds.first, bounds.second, GetMaxVal(), P5);
 
     FillPolygon(polygon, tmp, {255});
 
@@ -259,7 +259,7 @@ CImage<T>::CalculateLineBorderPoints(double thickness, double x1, double y1,
 
 template<class T>
 CImage<T>::CImage(const CImage<T> &img)
-    : w_(img.getWidth()), h_(img.getHeight()), max_val_(img.getMaxVal()) {
+    : w_(img.GetWidth()), h_(img.GetHeight()), max_val_(img.GetMaxVal()) {
   data_ = new T[w_ * h_];
   for (int i = 0; i < w_ * h_; i++) {
     data_[i] = img.data_[i];
@@ -329,17 +329,17 @@ CImage<T>::DrawDownscaled(const CImage<CMonoPixel> &img, int scale_x,
   int alpha_val = 0;
   int y;
   int x;
-  for (y = 0; y < img.getHeight(); y += scale_y) {
-    for (x = 0; x < img.getWidth(); x += scale_x) {
+  for (y = 0; y < img.GetHeight(); y += scale_y) {
+    for (x = 0; x < img.GetWidth(); x += scale_x) {
       for (int j = 0; j < scale_y; j++) {
         for (int i = 0; i < scale_x; i++) {
-          alpha_val += img.getPixel(x + i, y + j).val;
+          alpha_val += img.GetPixel(x + i, y + j).val;
         }
       }
       alpha_val /= (scale_x * scale_y);
-      T pix = this->getPixel(x / scale_x + (int) start_coord.first,
+      T pix = this->GetPixel(x / scale_x + (int) start_coord.first,
                              y / scale_y + (int) start_coord.second);
-      this->putPixel(x / scale_x + (int) start_coord.first,
+      this->PutPixel(x / scale_x + (int) start_coord.first,
                      y / scale_y + (int) start_coord.second,
                      apply_alpha(bright, pix, alpha_val, gamma));
       alpha_val = 0;
@@ -351,10 +351,10 @@ template<class T>
 void
 CImage<T>::plot(CImage &img, double x, double y, double c, CMonoPixel bright,
                 double gamma) {
-  if (x >= 0 && y >= 0 && x < img.getWidth() && y < img.getHeight()) {
-    img.putPixel(x, y, apply_alpha(bright, img.getPixel(x, y),
-                                   pow(c / img.getMaxVal(), 1 / gamma) *
-                                       img.getMaxVal(), gamma));
+  if (x >= 0 && y >= 0 && x < img.GetWidth() && y < img.GetHeight()) {
+    img.PutPixel(x, y, apply_alpha(bright, img.GetPixel(x, y),
+                                   pow(c / img.GetMaxVal(), 1 / gamma) *
+                                       img.GetMaxVal(), gamma));
   }
 }
 
@@ -364,7 +364,7 @@ double CImage<T>::intPart(double x) {
 }
 
 template<class T>
-double CImage<T>::floatPart(double x) {
+double CImage<T>::FloatPart(double x) {
   return x - floor(x);
 }
 
@@ -396,10 +396,10 @@ void CImage<T>::DrawWuLine(CMonoPixel brightness, double thickness, double x1,
     double y = y1 + delta;
     for (double x = x1 + 1.0; x < x2; x++) {
       plot(*this, intPart(y), x,
-           (double) brightness.val * (1.0 - floatPart(y)), brightness,
+           (double) brightness.val * (1.0 - FloatPart(y)), brightness,
            gamma);
       plot(*this, intPart(y) + 1.0, x,
-           (double) brightness.val * floatPart(y), brightness, gamma);
+           (double) brightness.val * FloatPart(y), brightness, gamma);
       y += delta;
     }
   } else {
@@ -408,10 +408,10 @@ void CImage<T>::DrawWuLine(CMonoPixel brightness, double thickness, double x1,
     double y = y1 + delta;
     for (double x = x1 + 1.0; x < x2; x++) {
       plot(*this, x, intPart(y),
-           (double) brightness.val * (1.0 - floatPart(y)), brightness,
+           (double) brightness.val * (1.0 - FloatPart(y)), brightness,
            gamma);
       plot(*this, x, intPart(y) + 1.0,
-           (double) brightness.val * floatPart(y), brightness, gamma);
+           (double) brightness.val * FloatPart(y), brightness, gamma);
       y += delta;
     }
   }
@@ -475,7 +475,7 @@ template<class T>
 void CImage<T>::FillPolygon(Polygon &polygon, CImage<T> &img, T color) {
   double k, y, xl, xr;
   int drawing;
-  int right_bound = img.getWidth() - 1;
+  int right_bound = img.GetWidth() - 1;
   int y_min = polygon.getYMin();
   int y_max = polygon.getYMax();
   int hash_size = (int(y_max - y_min)) + 4;
@@ -540,7 +540,7 @@ void CImage<T>::FillPolygon(Polygon &polygon, CImage<T> &img, T color) {
 
         if (xl <= xr) {
           for (int i = xl; i <= xr; i++) {
-            img.putPixel(i, y, color);
+            img.PutPixel(i, y, color);
           }
         }
         drawing = 0;
@@ -551,7 +551,7 @@ void CImage<T>::FillPolygon(Polygon &polygon, CImage<T> &img, T color) {
 
     if (drawing && xl <= right_bound) {
       for (int i = xl; i <= right_bound; i++) {
-        img.putPixel(i, y, color);
+        img.PutPixel(i, y, color);
       }
     }
   }
