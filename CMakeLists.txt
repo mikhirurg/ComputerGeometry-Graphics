@@ -19,3 +19,4 @@ add_executable(GammaLinesSample LAB2_renovate/GammaLinesSample.cpp ${L2_lib})
 
 add_executable(LAB3_test LAB3/test.cpp ${L3_lib})
 add_executable(LAB3_final LAB3/Lab3_full.cpp ${L3_lib})
+add_executable(LAB3_final_color LAB3/Lab3_full_color.cpp ${L3_lib})

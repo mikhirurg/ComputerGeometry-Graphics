@@ -12,6 +12,10 @@ struct SampleBayer {
   double *data;
   int n;
 
+  ~SampleBayer() {
+    delete[] data;
+  }
+
   void operator+=(double a) {
     for (int i = 0; i < n; i++) {
       for (int j = 0; j < n; j++) {
@@ -34,7 +38,12 @@ struct ErrorDiffMatrix {
   int w, h;
   int x0, y0;
   int del;
-  int get(int x, int y) {
+
+  ~ErrorDiffMatrix() {
+    delete[] data;
+  }
+
+  int get(int x, int y) const {
     return data[y * w + x];
   }
 };
@@ -76,11 +85,11 @@ class CDitherer {
   void FlipMatrixByVertical(int *matrix, int n);
   void TransponeMatrixByMain(int *matrix, int n);
   void TransponeMatrixBySide(int *matrix, int n);
-  void ApplyErrorDiffMatrix(ErrorDiffMatrix matrix, int x, int y, int err);
-  void ApplyErrorDiffMatrix(ErrorDiffMatrix matrix, int x, int y, int err_r, int err_g, int err_b);
+  void ApplyErrorDiffMatrix(const ErrorDiffMatrix& matrix, int x, int y, int err);
+  void ApplyErrorDiffMatrix(const ErrorDiffMatrix& matrix, int x, int y, int err_r, int err_g, int err_b);
   uchar FindNearestPaletteColor(int color_val, int n);
-  CMonoPixel ModifyPixelByMap(CMonoPixel pixel, int x, int y, SampleBayer bayer, int n);
-  CColorPixel ModifyPixelByMap(CColorPixel pixel, int x, int y, SampleBayer bayer, int n);
+  CMonoPixel ModifyPixelByMap(CMonoPixel pixel, int x, int y, const SampleBayer& bayer, int n);
+  CColorPixel ModifyPixelByMap(CColorPixel pixel, int x, int y, const SampleBayer& bayer, int n);
   CMonoPixel ModifyPixelByRandom(CMonoPixel pixel, int n, int seed);
   CColorPixel ModifyPixelByRandom(CColorPixel pixel, int n, int seed);
   std::mt19937 rand;
@@ -91,37 +100,45 @@ CDitherer<T>::CDitherer(CImage<T> &img)
     : img_(img) {
 
   SAMPLE_BAYER2 = {
-      new double[4]{0, 2,
-                    3, 1}, (int) 2
+      new double[4]{0.0, 2.0,
+                    3.0, 1.0}, (int) 2
   };
 
   SAMPLE_BAYER4 = {
-      new double[16]{0, 8, 2, 10,
-                     12, 4, 14, 6,
-                     3, 11, 1, 9,
-                     15, 7, 13, 5}, (int) 4
+      new double[16]{0.0, 8.0, 2.0, 10.0,
+                     12.0, 4.0, 14.0, 6.0,
+                     3.0, 11.0, 1.0, 9.0,
+                     15.0, 7.0, 13.0, 5.0}, (int) 4
   };
 
   SAMPLE_BAYER8 = {
-      new double[64]{0, 48, 12, 60, 3, 51, 15, 63,
-                     32, 16, 44, 28, 35, 19, 47, 31,
-                     8, 56, 4, 52, 11, 59, 7, 55,
-                     40, 24, 36, 20, 43, 27, 39, 23,
-                     2, 50, 14, 62, 1, 49, 13, 61,
-                     34, 18, 46, 30, 33, 17, 45, 29,
-                     10, 58, 6, 54, 9, 57, 5, 53,
-                     42, 26, 38, 22, 41, 25, 37, 21}, (int) 8
+      new double[64]{0.0, 48.0, 12.0, 60.0, 3.0, 51.0, 15.0, 63.0,
+                     32.0, 16.0, 44.0, 28.0, 35.0, 19.0, 47.0, 31.0,
+                     8.0, 56.0, 4.0, 52.0, 11.0, 59.0, 7.0, 55.0,
+                     40.0, 24.0, 36.0, 20.0, 43.0, 27.0, 39.0, 23.0,
+                     2.0, 50.0, 14.0, 62.0, 1.0, 49.0, 13.0, 61.0,
+                     34.0, 18.0, 46.0, 30.0, 33.0, 17.0, 45.0, 29.0,
+                     10.0, 58.0, 6.0, 54.0, 9.0, 57.0, 5.0, 53.0,
+                     42.0, 26.0, 38.0, 22.0, 41.0, 25.0, 37.0, 21.0}, (int) 8
   };
 
   HALFTONE_ORTHOGONAL = {
-      new double[16]{0, 0, 0, 1,
-                     0, 0, 1, 0,
-                     1, 0, 0, 0,
-                     0, 1, 0, 0}, (int) 4
+      new double[16]{7.0, 13.0, 11.0, 4.0,
+                     12.0, 16.0, 14.0, 8.0,
+                     10.0, 15.0, 6.0, 2.0,
+                     5.0, 9.0, 3.0, 1.0}, (int) 4
   };
-  SAMPLE_BAYER2 /= 4.0;
-  SAMPLE_BAYER4 /= 16.0;
-  SAMPLE_BAYER8 /= 64.0;
+
+  SAMPLE_BAYER2 /= (SAMPLE_BAYER2.n * SAMPLE_BAYER2.n);
+  SAMPLE_BAYER4 /= (SAMPLE_BAYER4.n * SAMPLE_BAYER4.n);
+  SAMPLE_BAYER8 /= (SAMPLE_BAYER8.n * SAMPLE_BAYER8.n);
+  HALFTONE_ORTHOGONAL /= (HALFTONE_ORTHOGONAL.n * HALFTONE_ORTHOGONAL.n);
+
+  SAMPLE_BAYER2 += -0.5;
+  SAMPLE_BAYER4 += -0.5;
+  SAMPLE_BAYER8 += -0.5;
+
+  HALFTONE_ORTHOGONAL += -0.5;
 
   FLOYD_STEINBERG = {
       new int[6]{-1, 0, 7,
@@ -153,17 +170,11 @@ CDitherer<T>::CDitherer(CImage<T> &img)
 }
 template<class T>
 CDitherer<T>::~CDitherer() {
-  delete SAMPLE_BAYER2.data;
-  delete SAMPLE_BAYER4.data;
-  delete SAMPLE_BAYER8.data;
-  delete FLOYD_STEINBERG.data;
-  delete JJN.data;
-  delete ATKINSON.data;
-  delete SIERRA.data;
+
 }
 
 template<>
-void CDitherer<CMonoPixel>::ApplyErrorDiffMatrix(ErrorDiffMatrix matrix, int x, int y, int err) {
+void CDitherer<CMonoPixel>::ApplyErrorDiffMatrix(const ErrorDiffMatrix& matrix, int x, int y, int err) {
   for (int i = 0; i < matrix.h; i++) {
     for (int j = 0; j < matrix.w; j++) {
       int x1 = x + j - matrix.x0;
@@ -178,7 +189,7 @@ void CDitherer<CMonoPixel>::ApplyErrorDiffMatrix(ErrorDiffMatrix matrix, int x, 
 }
 
 template<>
-void CDitherer<CColorPixel>::ApplyErrorDiffMatrix(ErrorDiffMatrix matrix,
+void CDitherer<CColorPixel>::ApplyErrorDiffMatrix(const ErrorDiffMatrix& matrix,
                                                   int x,
                                                   int y,
                                                   int err_r,
@@ -190,11 +201,12 @@ void CDitherer<CColorPixel>::ApplyErrorDiffMatrix(ErrorDiffMatrix matrix,
       int x1 = x + j - matrix.x0;
       int y1 = y + i - matrix.y0;
       if (matrix.get(j, i) > 0 && x1 >= 0 && x1 < img_.GetWidth() && y1 >= 0 && y1 < img_.GetHeight()) {
+        CColorPixel pixel = img_.GetLinearPixel(x1, y1);
         img_.PutPixel(x1,
                       y1,
-                      {(uchar) (img_.GetPixel(x1, y1).r + (err_r * matrix.get(j, i)) / matrix.del),
-                       (uchar) (img_.GetPixel(x1, y1).g + (err_g * matrix.get(j, i)) / matrix.del),
-                       (uchar) (img_.GetPixel(x1, y1).b + (err_b * matrix.get(j, i)) / matrix.del)});
+                      {(uchar) (pixel.r + (err_r * matrix.get(j, i)) / matrix.del),
+                       (uchar) (pixel.g + (err_g * matrix.get(j, i)) / matrix.del),
+                       (uchar) (pixel.b + (err_b * matrix.get(j, i)) / matrix.del)});
       }
     }
   }
@@ -204,7 +216,7 @@ template<>
 void CDitherer<CMonoPixel>::DoColorBitCorrection(int n) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
-      img_.PutPixel(x, y, {(uchar) FindNearestPaletteColor(img_.GetPixel(x, y).val, n)});
+      img_.PutPixelWithGamma(x, y, {FindNearestPaletteColor(img_.GetLinearPixel(x, y).val, n)});
     }
   }
 }
@@ -213,9 +225,10 @@ template<>
 void CDitherer<CColorPixel>::DoColorBitCorrection(int n) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
-      img_.PutPixel(x, y, {(uchar) FindNearestPaletteColor(img_.GetPixel(x, y).r, n),
-                           (uchar) FindNearestPaletteColor(img_.GetPixel(x, y).g, n),
-                           (uchar) FindNearestPaletteColor(img_.GetPixel(x, y).b, n)});
+      CColorPixel pixel = img_.GetLinearPixel(x, y);
+      img_.PutPixelWithGamma(x, y, {FindNearestPaletteColor(pixel.r, n),
+                           FindNearestPaletteColor(pixel.g, n),
+                           FindNearestPaletteColor(pixel.b, n)});
     }
   }
 }
@@ -224,7 +237,7 @@ template<class T>
 void CDitherer<T>::DoOrderedDithering(SampleBayer bayer, int n) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
-      img_.PutPixel(x, y, {ModifyPixelByMap(img_.GetPixel(x, y), x, y, bayer, n)});
+      img_.PutPixelWithGamma(x, y, ModifyPixelByMap(img_.GetLinearPixel(x, y), x, y, bayer, n));
     }
   }
 }
@@ -234,7 +247,7 @@ void CDitherer<T>::DoRandomDithering(int n, int seed) {
   rand.seed(seed);
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
-      img_.PutPixel(x, y, {ModifyPixelByRandom(img_.GetPixel(x, y), n, seed)});
+      img_.PutPixelWithGamma(x, y, {ModifyPixelByRandom(img_.GetLinearPixel(x, y), n, seed)});
     }
   }
 }
@@ -248,16 +261,16 @@ void CDitherer<CMonoPixel>::DoFloydSteinbergDithering(int n) {
       img_.PutPixel(x, y, new_pixel);
       int quant_err = old_pixel.val - new_pixel.val;
       if (x + 1 < img_.GetWidth()) {
-        img_.PutPixel(x + 1, y, {(uchar) (img_.GetPixel(x + 1, y).val + quant_err * 7.0 / 16.0)});
+        img_.PutPixelWithGamma(x + 1, y, {(uchar) (img_.GetLinearPixel(x + 1, y).val + quant_err * 7.0 / 16.0)});
       }
       if (x - 1 >= 0 && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x - 1, y + 1, {(uchar) (img_.GetPixel(x - 1, y + 1).val + quant_err * 3.0 / 16.0)});
+        img_.PutPixelWithGamma(x - 1, y + 1, {(uchar) (img_.GetLinearPixel(x - 1, y + 1).val + quant_err * 3.0 / 16.0)});
       }
       if (y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x, y + 1, {(uchar) (img_.GetPixel(x, y + 1).val + quant_err * 5.0 / 16.0)});
+        img_.PutPixelWithGamma(x, y + 1, {(uchar) (img_.GetLinearPixel(x, y + 1).val + quant_err * 5.0 / 16.0)});
       }
       if (y + 1 < img_.GetHeight() && x + 1 < img_.GetWidth()) {
-        img_.PutPixel(x + 1, y + 1, {(uchar) (img_.GetPixel(x + 1, y + 1).val + quant_err * 1.0 / 16.0)});
+        img_.PutPixelWithGamma(x + 1, y + 1, {(uchar) (img_.GetLinearPixel(x + 1, y + 1).val + quant_err * 1.0 / 16.0)});
       }
     }
   }
@@ -267,33 +280,37 @@ template<>
 void CDitherer<CColorPixel>::DoFloydSteinbergDithering(int n) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
-      CColorPixel old_pixel = img_.GetPixel(x, y);
+      CColorPixel old_pixel = img_.GetLinearPixel(x, y);
       CColorPixel new_pixel = {FindNearestPaletteColor(old_pixel.r, n),
                                FindNearestPaletteColor(old_pixel.g, n),
                                FindNearestPaletteColor(old_pixel.b, n)};
-      img_.PutPixel(x, y, new_pixel);
+      img_.PutPixelWithGamma(x, y, new_pixel);
       int quant_err_r = old_pixel.r - new_pixel.r;
       int quant_err_g = old_pixel.g - new_pixel.g;
       int quant_err_b = old_pixel.b - new_pixel.b;
       if (x + 1 < img_.GetWidth()) {
-        img_.PutPixel(x + 1, y, {(uchar) (img_.GetPixel(x + 1, y).r + (quant_err_r * 7.0 / 16.0)),
-                                 (uchar) (img_.GetPixel(x + 1, y).g + (quant_err_g * 7.0 / 16.0)),
-                                 (uchar) (img_.GetPixel(x + 1, y).b + (quant_err_b * 7.0 / 16.0))});
+        CColorPixel pixel = img_.GetLinearPixel(x + 1, y);
+        img_.PutPixelWithGamma(x + 1, y, {(uchar) (pixel.r + (quant_err_r * 7.0 / 16.0)),
+                                 (uchar) (pixel.g + (quant_err_g * 7.0 / 16.0)),
+                                 (uchar) (pixel.b + (quant_err_b * 7.0 / 16.0))});
       }
       if (x - 1 >= 0 && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x - 1, y + 1, {(uchar) (img_.GetPixel(x - 1, y + 1).r + (quant_err_r * 3.0 / 16.0)),
-                                     (uchar) (img_.GetPixel(x - 1, y + 1).g + (quant_err_g * 3.0 / 16.0)),
-                                     (uchar) (img_.GetPixel(x - 1, y + 1).b + (quant_err_b * 3.0 / 16.0))});
+        CColorPixel pixel = img_.GetLinearPixel(x - 1, y + 1);
+        img_.PutPixelWithGamma(x - 1, y + 1, {(uchar) (pixel.r + (quant_err_r * 3.0 / 16.0)),
+                                     (uchar) (pixel.g + (quant_err_g * 3.0 / 16.0)),
+                                     (uchar) (pixel.b + (quant_err_b * 3.0 / 16.0))});
       }
       if (y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x, y + 1, {(uchar) (img_.GetPixel(x, y + 1).r + (quant_err_r * 5.0 / 16.0)),
-                                 (uchar) (img_.GetPixel(x, y + 1).g + (quant_err_g * 5.0 / 16.0)),
-                                 (uchar) (img_.GetPixel(x, y + 1).b + (quant_err_b * 5.0 / 16.0))});
+        CColorPixel pixel = img_.GetLinearPixel(x, y + 1);
+        img_.PutPixelWithGamma(x, y + 1, {(uchar) (pixel.r + (quant_err_r * 5.0 / 16.0)),
+                                 (uchar) (pixel.g + (quant_err_g * 5.0 / 16.0)),
+                                 (uchar) (pixel.b + (quant_err_b * 5.0 / 16.0))});
       }
       if (y + 1 < img_.GetHeight() && x + 1 < img_.GetWidth()) {
-        img_.PutPixel(x + 1, y + 1, {(uchar) (img_.GetPixel(x + 1, y + 1).r + ((quant_err_r * 1.0) / 16)),
-                                     (uchar) (img_.GetPixel(x + 1, y + 1).g + (quant_err_g * 1.0 / 16)),
-                                     (uchar) (img_.GetPixel(x + 1, y + 1).b + (quant_err_b * 1.0 / 16))});
+        CColorPixel pixel = img_.GetLinearPixel(x + 1, y + 1);
+        img_.PutPixelWithGamma(x + 1, y + 1, {(uchar) (pixel.r + ((quant_err_r * 1.0) / 16)),
+                                     (uchar) (pixel.g + (quant_err_g * 1.0 / 16)),
+                                     (uchar) (pixel.b + (quant_err_b * 1.0 / 16))});
       }
     }
   }
@@ -303,11 +320,11 @@ template<>
 void CDitherer<CColorPixel>::DoJJNDithering(int n) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
-      CColorPixel old_pixel = img_.GetPixel(x, y);
+      const CColorPixel &old_pixel = img_.GetLinearPixel(x, y);
       CColorPixel new_pixel = {FindNearestPaletteColor(old_pixel.r, n),
                                FindNearestPaletteColor(old_pixel.g, n),
                                FindNearestPaletteColor(old_pixel.b, n)};
-      img_.PutPixel(x, y, new_pixel);
+      img_.PutPixelWithGamma(x, y, new_pixel);
       int quant_err_r = old_pixel.r - new_pixel.r;
       int quant_err_g = old_pixel.g - new_pixel.g;
       int quant_err_b = old_pixel.b - new_pixel.b;
@@ -315,66 +332,78 @@ void CDitherer<CColorPixel>::DoJJNDithering(int n) {
       double del = 48.0;
 
       if (x + 1 < img_.GetWidth()) {
-        img_.PutPixel(x + 1, y, {(uchar) (img_.GetPixel(x + 1, y).r + (quant_err_r * 7.0 / del)),
-                                 (uchar) (img_.GetPixel(x + 1, y).g + (quant_err_g * 7.0 / del)),
-                                 (uchar) (img_.GetPixel(x + 1, y).b + (quant_err_b * 7.0 / del))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x + 1, y);
+        img_.PutPixelWithGamma(x + 1, y, {(uchar) (pixel.r + (quant_err_r * 7.0 / del)),
+                                 (uchar) (pixel.g + (quant_err_g * 7.0 / del)),
+                                 (uchar) (pixel.b + (quant_err_b * 7.0 / del))});
       }
       if (x + 2 < img_.GetWidth()) {
-        img_.PutPixel(x + 2, y, {(uchar) (img_.GetPixel(x + 2, y).r + (quant_err_r * 5.0 / del)),
-                                 (uchar) (img_.GetPixel(x + 2, y).g + (quant_err_g * 5.0 / del)),
-                                 (uchar) (img_.GetPixel(x + 2, y).b + (quant_err_b * 5.0 / del))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x + 2, y);
+        img_.PutPixelWithGamma(x + 2, y, {(uchar) (pixel.r + (quant_err_r * 5.0 / del)),
+                                 (uchar) (pixel.g + (quant_err_g * 5.0 / del)),
+                                 (uchar) (pixel.b + (quant_err_b * 5.0 / del))});
       }
       if ((x - 2 >= 0) && (y + 1 < img_.GetHeight())) {
-        img_.PutPixel(x - 2, y + 1, {(uchar) (img_.GetPixel(x - 2, y + 1).r + (quant_err_r * 3.0 / del)),
-                                     (uchar) (img_.GetPixel(x - 2, y + 1).g + (quant_err_g * 3.0 / del)),
-                                     (uchar) (img_.GetPixel(x - 2, y + 1).b + (quant_err_b * 3.0 / del))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x - 2, y + 1);
+        img_.PutPixelWithGamma(x - 2, y + 1, {(uchar) (pixel.r + (quant_err_r * 3.0 / del)),
+                                     (uchar) (pixel.g + (quant_err_g * 3.0 / del)),
+                                     (uchar) (pixel.b + (quant_err_b * 3.0 / del))});
       }
       if ((x - 1 >= 0) && (y + 1 < img_.GetHeight())) {
-        img_.PutPixel(x - 1, y + 1, {(uchar) (img_.GetPixel(x - 1, y + 1).r + (quant_err_r * 5.0 / del)),
-                                     (uchar) (img_.GetPixel(x - 1, y + 1).g + (quant_err_g * 5.0 / del)),
-                                     (uchar) (img_.GetPixel(x - 1, y + 1).b + (quant_err_b * 5.0 / del))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x - 1, y + 1);
+        img_.PutPixelWithGamma(x - 1, y + 1, {(uchar) (pixel.r + (quant_err_r * 5.0 / del)),
+                                              (uchar) (pixel.g + (quant_err_g * 5.0 / del)),
+                                              (uchar) (pixel.b + (quant_err_b * 5.0 / del))});
       }
       if (y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x, y + 1, {(uchar) (img_.GetPixel(x, y + 1).r + (quant_err_r * 7.0 / del)),
-                                 (uchar) (img_.GetPixel(x, y + 1).g + (quant_err_g * 7.0 / del)),
-                                 (uchar) (img_.GetPixel(x, y + 1).b + (quant_err_b * 7.0 / del))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x, y + 1);
+        img_.PutPixelWithGamma(x, y + 1, {(uchar) (pixel.r + (quant_err_r * 7.0 / del)),
+                                          (uchar) (pixel.g + (quant_err_g * 7.0 / del)),
+                                          (uchar) (pixel.b + (quant_err_b * 7.0 / del))});
       }
 
       if ((x + 1 < img_.GetWidth()) && (y + 1 < img_.GetHeight())) {
-        img_.PutPixel(x + 1, y + 1, {(uchar) (img_.GetPixel(x + 1, y + 1).r + (quant_err_r * 5.0 / del)),
-                                     (uchar) (img_.GetPixel(x + 1, y + 1).g + (quant_err_g * 5.0 / del)),
-                                     (uchar) (img_.GetPixel(x + 1, y + 1).b + (quant_err_b * 5.0 / del))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x + 1, y + 1);
+        img_.PutPixelWithGamma(x + 1, y + 1, {(uchar) (pixel.r + (quant_err_r * 5.0 / del)),
+                                              (uchar) (pixel.g + (quant_err_g * 5.0 / del)),
+                                              (uchar) (pixel.b + (quant_err_b * 5.0 / del))});
       }
 
       if ((x + 2 < img_.GetWidth()) && (y + 1 < img_.GetHeight())) {
-        img_.PutPixel(x + 2, y + 1, {(uchar) (img_.GetPixel(x + 2, y + 1).r + (quant_err_r * 3.0 / del)),
-                                     (uchar) (img_.GetPixel(x + 2, y + 1).g + (quant_err_g * 3.0 / del)),
-                                     (uchar) (img_.GetPixel(x + 2, y + 1).b + (quant_err_b * 3.0 / del))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x + 2, y + 1);
+        img_.PutPixelWithGamma(x + 2, y + 1, {(uchar) (pixel.r + (quant_err_r * 3.0 / del)),
+                                              (uchar) (pixel.g + (quant_err_g * 3.0 / del)),
+                                              (uchar) (pixel.b + (quant_err_b * 3.0 / del))});
       }
       if ((x - 2 >= 0) && (y + 2 < img_.GetHeight())) {
-        img_.PutPixel(x - 2, y + 2, {(uchar) (img_.GetPixel(x - 2, y + 2).r + ((quant_err_r) / del)),
-                                     (uchar) (img_.GetPixel(x - 2, y + 2).g + ((quant_err_g) / del)),
-                                     (uchar) (img_.GetPixel(x - 2, y + 2).b + ((quant_err_b) / del))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x - 2, y + 2);
+        img_.PutPixelWithGamma(x - 2, y + 2, {(uchar) (pixel.r + ((quant_err_r) / del)),
+                                              (uchar) (pixel.g + ((quant_err_g) / del)),
+                                              (uchar) (pixel.b + ((quant_err_b) / del))});
       }
       if ((x - 1 >= 0) && (y + 2 < img_.GetHeight())) {
-        img_.PutPixel(x - 1, y + 2, {(uchar) (img_.GetPixel(x - 1, y + 2).r + (quant_err_r * 3.0 / del)),
-                                     (uchar) (img_.GetPixel(x - 1, y + 2).g + (quant_err_g * 3.0 / del)),
-                                     (uchar) (img_.GetPixel(x - 1, y + 2).b + (quant_err_b * 3.0 / del))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x - 1, y + 2);
+        img_.PutPixelWithGamma(x - 1, y + 2, {(uchar) (pixel.r + (quant_err_r * 3.0 / del)),
+                                              (uchar) (pixel.g + (quant_err_g * 3.0 / del)),
+                                              (uchar) (pixel.b + (quant_err_b * 3.0 / del))});
       }
       if (y + 2 < img_.GetHeight()) {
-        img_.PutPixel(x, y + 2, {(uchar) (img_.GetPixel(x, y + 2).r + (quant_err_r * 5.0 / del)),
-                                 (uchar) (img_.GetPixel(x, y + 2).g + (quant_err_g * 5.0 / del)),
-                                 (uchar) (img_.GetPixel(x, y + 2).b + (quant_err_b * 5.0 / del))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x, y + 2);
+        img_.PutPixelWithGamma(x, y + 2, {(uchar) (pixel.r + (quant_err_r * 5.0 / del)),
+                                          (uchar) (pixel.g + (quant_err_g * 5.0 / del)),
+                                          (uchar) (pixel.b + (quant_err_b * 5.0 / del))});
       }
       if ((x + 1 < img_.GetWidth()) && (y + 2 < img_.GetHeight())) {
-        img_.PutPixel(x + 1, y + 2, {(uchar) (img_.GetPixel(x + 1, y + 2).r + (quant_err_r * 3.0 / del)),
-                                     (uchar) (img_.GetPixel(x + 1, y + 2).g + (quant_err_g * 3.0 / del)),
-                                     (uchar) (img_.GetPixel(x + 1, y + 2).b + (quant_err_b * 3.0 / del))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x + 1, y + 2);
+        img_.PutPixelWithGamma(x + 1, y + 2, {(uchar) (pixel.r + (quant_err_r * 3.0 / del)),
+                                              (uchar) (pixel.g + (quant_err_g * 3.0 / del)),
+                                              (uchar) (pixel.b + (quant_err_b * 3.0 / del))});
       }
       if ((x + 2 < img_.GetWidth()) && (y + 2 < img_.GetHeight())) {
-        img_.PutPixel(x + 2, y + 2, {(uchar) (img_.GetPixel(x + 2, y + 2).r + (quant_err_r / del)),
-                                     (uchar) (img_.GetPixel(x + 2, y + 2).g + (quant_err_g / del)),
-                                     (uchar) (img_.GetPixel(x + 2, y + 2).b + (quant_err_b / del))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x + 2, y + 2);
+        img_.PutPixelWithGamma(x + 2, y + 2, {(uchar) (pixel.r + (quant_err_r / del)),
+                                              (uchar) (pixel.g + (quant_err_g / del)),
+                                              (uchar) (pixel.b + (quant_err_b / del))});
       }
     }
   }
@@ -384,47 +413,47 @@ template<>
 void CDitherer<CMonoPixel>::DoJJNDithering(int n) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
-      CMonoPixel old_pixel = img_.GetPixel(x, y);
+      CMonoPixel old_pixel = img_.GetLinearPixel(x, y);
       CMonoPixel new_pixel = {FindNearestPaletteColor(old_pixel.val, n)};
-      img_.PutPixel(x, y, new_pixel);
+      img_.PutPixelWithGamma(x, y, new_pixel);
       int quant_err = old_pixel.val - new_pixel.val;
       if (x + 1 < img_.GetWidth()) {
-        img_.PutPixel(x + 1, y, {(uchar) (img_.GetPixel(x + 1, y).val + ((quant_err * 7) / 48))});
+        img_.PutPixelWithGamma(x + 1, y, {(uchar) (img_.GetLinearPixel(x + 1, y).val + ((quant_err * 7) / 48))});
       }
       if (x + 2 < img_.GetWidth()) {
-        img_.PutPixel(x + 2, y, {(uchar) (img_.GetPixel(x + 2, y).val + ((quant_err * 5) / 48))});
+        img_.PutPixelWithGamma(x + 2, y, {(uchar) (img_.GetLinearPixel(x + 2, y).val + ((quant_err * 5) / 48))});
       }
       if (x - 2 >= 0 && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x - 2, y + 1, {(uchar) (img_.GetPixel(x - 2, y + 1).val + ((quant_err * 3) / 48))});
+        img_.PutPixelWithGamma(x - 2, y + 1, {(uchar) (img_.GetLinearPixel(x - 2, y + 1).val + ((quant_err * 3) / 48))});
       }
       if (x - 1 >= 0 && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x - 1, y + 1, {(uchar) (img_.GetPixel(x - 1, y + 1).val + ((quant_err * 5) / 48))});
+        img_.PutPixelWithGamma(x - 1, y + 1, {(uchar) (img_.GetLinearPixel(x - 1, y + 1).val + ((quant_err * 5) / 48))});
       }
       if (y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x, y + 1, {(uchar) (img_.GetPixel(x, y + 1).val + ((quant_err * 7) / 48))});
+        img_.PutPixelWithGamma(x, y + 1, {(uchar) (img_.GetLinearPixel(x, y + 1).val + ((quant_err * 7) / 48))});
       }
 
       if (x + 1 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x + 1, y + 1, {(uchar) (img_.GetPixel(x + 1, y + 1).val + ((quant_err * 5) / 48))});
+        img_.PutPixelWithGamma(x + 1, y + 1, {(uchar) (img_.GetLinearPixel(x + 1, y + 1).val + ((quant_err * 5) / 48))});
       }
 
       if (x + 2 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x + 2, y + 1, {(uchar) (img_.GetPixel(x + 2, y + 1).val + ((quant_err * 3) / 48))});
+        img_.PutPixelWithGamma(x + 2, y + 1, {(uchar) (img_.GetLinearPixel(x + 2, y + 1).val + ((quant_err * 3) / 48))});
       }
       if (x - 2 >= 0 && y + 2 < img_.GetHeight()) {
-        img_.PutPixel(x - 2, y + 2, {(uchar) (img_.GetPixel(x - 2, y + 2).val + ((quant_err) / 48))});
+        img_.PutPixelWithGamma(x - 2, y + 2, {(uchar) (img_.GetLinearPixel(x - 2, y + 2).val + ((quant_err) / 48))});
       }
       if (x - 1 >= 0 && y + 2 < img_.GetHeight()) {
-        img_.PutPixel(x - 1, y + 2, {(uchar) (img_.GetPixel(x - 1, y + 2).val + ((quant_err * 3) / 48))});
+        img_.PutPixelWithGamma(x - 1, y + 2, {(uchar) (img_.GetLinearPixel(x - 1, y + 2).val + ((quant_err * 3) / 48))});
       }
       if (y + 2 < img_.GetHeight()) {
-        img_.PutPixel(x, y + 2, {(uchar) (img_.GetPixel(x, y + 2).val + ((quant_err * 5) / 48))});
+        img_.PutPixelWithGamma(x, y + 2, {(uchar) (img_.GetLinearPixel(x, y + 2).val + ((quant_err * 5) / 48))});
       }
       if (x + 1 < img_.GetWidth() && y + 2 < img_.GetHeight()) {
-        img_.PutPixel(x + 1, y + 2, {(uchar) (img_.GetPixel(x + 1, y + 2).val + ((quant_err * 3.0) / 48))});
+        img_.PutPixelWithGamma(x + 1, y + 2, {(uchar) (img_.GetLinearPixel(x + 1, y + 2).val + ((quant_err * 3.0) / 48))});
       }
       if (x + 2 < img_.GetWidth() && y + 2 < img_.GetHeight()) {
-        img_.PutPixel(x + 2, y + 2, {(uchar) (img_.GetPixel(x + 2, y + 2).val + ((quant_err) / 48))});
+        img_.PutPixelWithGamma(x + 2, y + 2, {(uchar) (img_.GetLinearPixel(x + 2, y + 2).val + ((quant_err) / 48))});
       }
     }
   }
@@ -437,24 +466,24 @@ void CDitherer<CMonoPixel>::DoAtkinsonDithering(int n) {
       CMonoPixel old_pixel = img_.GetPixel(x, y);
       CMonoPixel new_pixel = {FindNearestPaletteColor(old_pixel.val, n)};
       int quant_err = old_pixel.val - new_pixel.val;
-      img_.PutPixel(x, y, new_pixel);
+      img_.PutPixelWithGamma(x, y, new_pixel);
       if (x + 1 < img_.GetWidth()) {
-        img_.PutPixel(x + 1, y, {(uchar) (img_.GetPixel(x + 1, y).val + ((quant_err) / 8))});
+        img_.PutPixelWithGamma(x + 1, y, {(uchar) (img_.GetLinearPixel(x + 1, y).val + ((quant_err) / 8))});
       }
       if (x + 2 < img_.GetWidth()) {
-        img_.PutPixel(x + 2, y, {(uchar) (img_.GetPixel(x + 2, y).val + ((quant_err) / 8))});
+        img_.PutPixelWithGamma(x + 2, y, {(uchar) (img_.GetLinearPixel(x + 2, y).val + ((quant_err) / 8))});
       }
       if (x - 1 >= 0 && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x - 1, y + 1, {(uchar) (img_.GetPixel(x - 1, y + 1).val + ((quant_err) / 8))});
+        img_.PutPixelWithGamma(x - 1, y + 1, {(uchar) (img_.GetLinearPixel(x - 1, y + 1).val + ((quant_err) / 8))});
       }
       if (y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x, y + 1, {(uchar) (img_.GetPixel(x, y + 1).val + ((quant_err) / 8))});
+        img_.PutPixelWithGamma(x, y + 1, {(uchar) (img_.GetLinearPixel(x, y + 1).val + ((quant_err) / 8))});
       }
       if (x + 1 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x + 1, y + 1, {(uchar) (img_.GetPixel(x + 1, y + 1).val + ((quant_err) / 8))});
+        img_.PutPixelWithGamma(x + 1, y + 1, {(uchar) (img_.GetLinearPixel(x + 1, y + 1).val + ((quant_err) / 8))});
       }
       if (y + 2 < img_.GetHeight()) {
-        img_.PutPixel(x, y + 2, {(uchar) (img_.GetPixel(x, y + 2).val + ((quant_err) / 8))});
+        img_.PutPixelWithGamma(x, y + 2, {(uchar) (img_.GetLinearPixel(x, y + 2).val + ((quant_err) / 8))});
       }
     }
   }
@@ -475,34 +504,40 @@ void CDitherer<CColorPixel>::DoAtkinsonDithering(int n) {
 
       img_.PutPixel(x, y, new_pixel);
       if (x + 1 < img_.GetWidth()) {
-        img_.PutPixel(x + 1, y, {(uchar) (img_.GetPixel(x + 1, y).r + ((quant_err_r) / 8)),
-                                 (uchar) (img_.GetPixel(x + 1, y).g + ((quant_err_g) / 8)),
-                                 (uchar) (img_.GetPixel(x + 1, y).b + ((quant_err_b) / 8))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x + 1, y);
+        img_.PutPixelWithGamma(x + 1, y, {(uchar) (pixel.r + ((quant_err_r) / 8)),
+                                          (uchar) (pixel.g + ((quant_err_g) / 8)),
+                                          (uchar) (pixel.b + ((quant_err_b) / 8))});
       }
       if (x + 2 < img_.GetWidth()) {
-        img_.PutPixel(x + 2, y, {(uchar) (img_.GetPixel(x + 2, y).r + ((quant_err_r) / 8)),
-                                 (uchar) (img_.GetPixel(x + 2, y).g + ((quant_err_g) / 8)),
-                                 (uchar) (img_.GetPixel(x + 2, y).b + ((quant_err_b) / 8))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x + 2, y);
+        img_.PutPixelWithGamma(x + 2, y, {(uchar) (pixel.r + ((quant_err_r) / 8)),
+                                          (uchar) (pixel.g + ((quant_err_g) / 8)),
+                                          (uchar) (pixel.b + ((quant_err_b) / 8))});
       }
       if (x - 1 >= 0 && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x - 1, y + 1, {(uchar) (img_.GetPixel(x - 1, y + 1).r + ((quant_err_r) / 8)),
-                                     (uchar) (img_.GetPixel(x - 1, y + 1).g + ((quant_err_g) / 8)),
-                                     (uchar) (img_.GetPixel(x - 1, y + 1).b + ((quant_err_b) / 8))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x - 1, y + 1);
+        img_.PutPixelWithGamma(x - 1, y + 1, {(uchar) (pixel.r + ((quant_err_r) / 8)),
+                                              (uchar) (pixel.g + ((quant_err_g) / 8)),
+                                              (uchar) (pixel.b + ((quant_err_b) / 8))});
       }
       if (y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x, y + 1, {(uchar) (img_.GetPixel(x, y + 1).r + ((quant_err_r) / 8)),
-                                 (uchar) (img_.GetPixel(x, y + 1).g + ((quant_err_g) / 8)),
-                                 (uchar) (img_.GetPixel(x, y + 1).b + ((quant_err_b) / 8))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x, y + 1);
+        img_.PutPixelWithGamma(x, y + 1, {(uchar) (pixel.r + ((quant_err_r) / 8)),
+                                          (uchar) (pixel.g + ((quant_err_g) / 8)),
+                                          (uchar) (pixel.b + ((quant_err_b) / 8))});
       }
       if (x + 1 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x + 1, y + 1, {(uchar) (img_.GetPixel(x + 1, y + 1).r + ((quant_err_r) / 8)),
-                                     (uchar) (img_.GetPixel(x + 1, y + 1).g + ((quant_err_g) / 8)),
-                                     (uchar) (img_.GetPixel(x + 1, y + 1).b + ((quant_err_b) / 8))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x + 1, y + 1);
+        img_.PutPixelWithGamma(x + 1, y + 1, {(uchar) (pixel.r + ((quant_err_r) / 8)),
+                                              (uchar) (pixel.g + ((quant_err_g) / 8)),
+                                              (uchar) (pixel.b + ((quant_err_b) / 8))});
       }
       if (y + 2 < img_.GetHeight()) {
-        img_.PutPixel(x, y + 2, {(uchar) (img_.GetPixel(x, y + 2).r + ((quant_err_r) / 8)),
-                                 (uchar) (img_.GetPixel(x, y + 2).g + ((quant_err_g) / 8)),
-                                 (uchar) (img_.GetPixel(x, y + 2).b + ((quant_err_b) / 8))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x, y + 2);
+        img_.PutPixelWithGamma(x, y + 2, {(uchar) (pixel.r + ((quant_err_r) / 8)),
+                                          (uchar) (pixel.g + ((quant_err_g) / 8)),
+                                          (uchar) (pixel.b + ((quant_err_b) / 8))});
       }
     }
   }
@@ -517,36 +552,36 @@ void CDitherer<CMonoPixel>::DoSierraDithering(int n) {
       img_.PutPixel(x, y, new_pixel);
       int quant_err = old_pixel.val - new_pixel.val;
       if (x + 1 < img_.GetWidth()) {
-        img_.PutPixel(x + 1, y, {(uchar) (img_.GetPixel(x + 1, y).val + ((quant_err * 5) / 32))});
+        img_.PutPixelWithGamma(x + 1, y, {(uchar) (img_.GetLinearPixel(x + 1, y).val + ((quant_err * 5) / 32))});
       }
       if (x + 2 < img_.GetWidth()) {
-        img_.PutPixel(x + 2, y, {(uchar) (img_.GetPixel(x + 2, y).val + ((quant_err * 3) / 32))});
+        img_.PutPixelWithGamma(x + 2, y, {(uchar) (img_.GetLinearPixel(x + 2, y).val + ((quant_err * 3) / 32))});
       }
       if (x - 2 >= 0 && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x - 2, y + 1, {(uchar) (img_.GetPixel(x - 2, y + 1).val + ((quant_err * 2) / 32))});
+        img_.PutPixelWithGamma(x - 2, y + 1, {(uchar) (img_.GetLinearPixel(x - 2, y + 1).val + ((quant_err * 2) / 32))});
       }
       if (x - 1 >= 0 && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x - 1, y + 1, {(uchar) (img_.GetPixel(x - 1, y + 1).val + ((quant_err * 4) / 32))});
+        img_.PutPixelWithGamma(x - 1, y + 1, {(uchar) (img_.GetLinearPixel(x - 1, y + 1).val + ((quant_err * 4) / 32))});
       }
       if (y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x, y + 1, {(uchar) (img_.GetPixel(x, y + 1).val + ((quant_err * 5) / 32))});
+        img_.PutPixelWithGamma(x, y + 1, {(uchar) (img_.GetLinearPixel(x, y + 1).val + ((quant_err * 5) / 32))});
       }
 
       if (x + 1 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x + 1, y + 1, {(uchar) (img_.GetPixel(x + 1, y + 1).val + ((quant_err * 4) / 32))});
+        img_.PutPixelWithGamma(x + 1, y + 1, {(uchar) (img_.GetLinearPixel(x + 1, y + 1).val + ((quant_err * 4) / 32))});
       }
 
       if (x + 2 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x + 2, y + 1, {(uchar) (img_.GetPixel(x + 2, y + 1).val + ((quant_err * 2) / 32))});
+        img_.PutPixelWithGamma(x + 2, y + 1, {(uchar) (img_.GetLinearPixel(x + 2, y + 1).val + ((quant_err * 2) / 32))});
       }
       if (x - 1 >= 0 && y + 2 < img_.GetHeight()) {
-        img_.PutPixel(x - 1, y + 2, {(uchar) (img_.GetPixel(x - 1, y + 2).val + ((quant_err * 2) / 32))});
+        img_.PutPixelWithGamma(x - 1, y + 2, {(uchar) (img_.GetLinearPixel(x - 1, y + 2).val + ((quant_err * 2) / 32))});
       }
       if (y + 2 < img_.GetHeight()) {
-        img_.PutPixel(x, y + 2, {(uchar) (img_.GetPixel(x, y + 2).val + ((quant_err * 3) / 32))});
+        img_.PutPixelWithGamma(x, y + 2, {(uchar) (img_.GetLinearPixel(x, y + 2).val + ((quant_err * 3) / 32))});
       }
       if (x + 1 < img_.GetWidth() && y + 2 < img_.GetHeight()) {
-        img_.PutPixel(x + 1, y + 2, {(uchar) (img_.GetPixel(x + 1, y + 2).val + ((quant_err * 2) / 32))});
+        img_.PutPixelWithGamma(x + 1, y + 2, {(uchar) (img_.GetLinearPixel(x + 1, y + 2).val + ((quant_err * 2) / 32))});
       }
     }
   }
@@ -566,56 +601,66 @@ void CDitherer<CColorPixel>::DoSierraDithering(int n) {
       int quant_err_b = old_pixel.b - new_pixel.b;
 
       if (x + 1 < img_.GetWidth()) {
-        img_.PutPixel(x + 1, y, {(uchar) (img_.GetPixel(x + 1, y).r + ((quant_err_r * 5) / 32)),
-                                 (uchar) (img_.GetPixel(x + 1, y).g + ((quant_err_g * 5) / 32)),
-                                 (uchar) (img_.GetPixel(x + 1, y).b + ((quant_err_b * 5) / 32))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x + 1, y);
+        img_.PutPixelWithGamma(x + 1, y, {(uchar) (pixel.r + ((quant_err_r * 5) / 32)),
+                                          (uchar) (pixel.g + ((quant_err_g * 5) / 32)),
+                                          (uchar) (pixel.b + ((quant_err_b * 5) / 32))});
       }
       if (x + 2 < img_.GetWidth()) {
-        img_.PutPixel(x + 2, y, {(uchar) (img_.GetPixel(x + 2, y).r + ((quant_err_r * 3) / 32)),
-                                 (uchar) (img_.GetPixel(x + 2, y).g + ((quant_err_g * 3) / 32)),
-                                 (uchar) (img_.GetPixel(x + 2, y).b + ((quant_err_b * 3) / 32))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x + 2, y);
+        img_.PutPixelWithGamma(x + 2, y, {(uchar) (pixel.r + ((quant_err_r * 3) / 32)),
+                                          (uchar) (pixel.g + ((quant_err_g * 3) / 32)),
+                                          (uchar) (pixel.b + ((quant_err_b * 3) / 32))});
       }
       if (x - 2 >= 0 && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x - 2, y + 1, {(uchar) (img_.GetPixel(x - 2, y + 1).r + ((quant_err_r * 2) / 32)),
-                                     (uchar) (img_.GetPixel(x - 2, y + 1).g + ((quant_err_g * 2) / 32)),
-                                     (uchar) (img_.GetPixel(x - 2, y + 1).b + ((quant_err_b * 2) / 32))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x - 2, y + 1);
+        img_.PutPixelWithGamma(x - 2, y + 1, {(uchar) (pixel.r + ((quant_err_r * 2) / 32)),
+                                              (uchar) (pixel.g + ((quant_err_g * 2) / 32)),
+                                              (uchar) (pixel.b + ((quant_err_b * 2) / 32))});
       }
       if (x - 1 >= 0 && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x - 1, y + 1, {(uchar) (img_.GetPixel(x - 1, y + 1).r + ((quant_err_r * 4) / 32)),
-                                     (uchar) (img_.GetPixel(x - 1, y + 1).g + ((quant_err_g * 4) / 32)),
-                                     (uchar) (img_.GetPixel(x - 1, y + 1).b + ((quant_err_b * 4) / 32))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x - 1, y + 1);
+        img_.PutPixelWithGamma(x - 1, y + 1, {(uchar) (pixel.r + ((quant_err_r * 4) / 32)),
+                                              (uchar) (pixel.g + ((quant_err_g * 4) / 32)),
+                                              (uchar) (pixel.b + ((quant_err_b * 4) / 32))});
       }
       if (y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x, y + 1, {(uchar) (img_.GetPixel(x, y + 1).r + ((quant_err_r * 5) / 32)),
-                                 (uchar) (img_.GetPixel(x, y + 1).g + ((quant_err_g * 5) / 32)),
-                                 (uchar) (img_.GetPixel(x, y + 1).b + ((quant_err_b * 5) / 32))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x, y + 1);
+        img_.PutPixelWithGamma(x, y + 1, {(uchar) (pixel.r + ((quant_err_r * 5) / 32)),
+                                          (uchar) (pixel.g + ((quant_err_g * 5) / 32)),
+                                          (uchar) (pixel.b + ((quant_err_b * 5) / 32))});
       }
 
       if (x + 1 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x + 1, y + 1, {(uchar) (img_.GetPixel(x + 1, y + 1).r + ((quant_err_r * 4) / 32)),
-                                     (uchar) (img_.GetPixel(x + 1, y + 1).g + ((quant_err_g * 4) / 32)),
-                                     (uchar) (img_.GetPixel(x + 1, y + 1).b + ((quant_err_b * 4) / 32))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x + 1, y + 1);
+        img_.PutPixelWithGamma(x + 1, y + 1, {(uchar) (pixel.r + ((quant_err_r * 4) / 32)),
+                                              (uchar) (pixel.g + ((quant_err_g * 4) / 32)),
+                                              (uchar) (pixel.b + ((quant_err_b * 4) / 32))});
       }
 
       if (x + 2 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
-        img_.PutPixel(x + 2, y + 1, {(uchar) (img_.GetPixel(x + 2, y + 1).r + ((quant_err_r * 2) / 32)),
-                                     (uchar) (img_.GetPixel(x + 2, y + 1).g + ((quant_err_g * 2) / 32)),
-                                     (uchar) (img_.GetPixel(x + 2, y + 1).b + ((quant_err_b * 2) / 32))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x + 2, y + 1);
+        img_.PutPixelWithGamma(x + 2, y + 1, {(uchar) (pixel.r + ((quant_err_r * 2) / 32)),
+                                              (uchar) (pixel.g + ((quant_err_g * 2) / 32)),
+                                              (uchar) (pixel.b + ((quant_err_b * 2) / 32))});
       }
       if (x - 1 >= 0 && y + 2 < img_.GetHeight()) {
-        img_.PutPixel(x - 1, y + 2, {(uchar) (img_.GetPixel(x - 1, y + 2).r + ((quant_err_r * 2) / 32)),
-                                     (uchar) (img_.GetPixel(x - 1, y + 2).g + ((quant_err_g * 2) / 32)),
-                                     (uchar) (img_.GetPixel(x - 1, y + 2).b + ((quant_err_b * 2) / 32))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x - 1, y + 2);
+        img_.PutPixelWithGamma(x - 1, y + 2, {(uchar) (pixel.r + ((quant_err_r * 2) / 32)),
+                                              (uchar) (pixel.g + ((quant_err_g * 2) / 32)),
+                                              (uchar) (pixel.b + ((quant_err_b * 2) / 32))});
       }
       if (y + 2 < img_.GetHeight()) {
-        img_.PutPixel(x, y + 2, {(uchar) (img_.GetPixel(x, y + 2).r + ((quant_err_r * 3) / 32)),
-                                 (uchar) (img_.GetPixel(x, y + 2).g + ((quant_err_g * 3) / 32)),
-                                 (uchar) (img_.GetPixel(x, y + 2).b + ((quant_err_b * 3) / 32))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x, y + 2);
+        img_.PutPixelWithGamma(x, y + 2, {(uchar) (pixel.r + ((quant_err_r * 3) / 32)),
+                                          (uchar) (pixel.g + ((quant_err_g * 3) / 32)),
+                                          (uchar) (pixel.b + ((quant_err_b * 3) / 32))});
       }
       if (x + 1 < img_.GetWidth() && y + 2 < img_.GetHeight()) {
-        img_.PutPixel(x + 1, y + 2, {(uchar) (img_.GetPixel(x + 1, y + 2).r + ((quant_err_r * 2) / 32)),
-                                     (uchar) (img_.GetPixel(x + 1, y + 2).g + ((quant_err_g * 2) / 32)),
-                                     (uchar) (img_.GetPixel(x + 1, y + 2).b + ((quant_err_b * 2) / 32))});
+        const CColorPixel &pixel = img_.GetLinearPixel(x + 1, y + 2);
+        img_.PutPixelWithGamma(x + 1, y + 2, {(uchar) (pixel.r + ((quant_err_r * 2) / 32)),
+                                              (uchar) (pixel.g + ((quant_err_g * 2) / 32)),
+                                              (uchar) (pixel.b + ((quant_err_b * 2) / 32))});
       }
     }
   }
@@ -625,7 +670,7 @@ template<class T>
 void CDitherer<T>::DoHalftoneDithering(int n) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
-      img_.PutPixel(x, y, {ModifyPixelByMap(img_.GetPixel(x, y), x, y, HALFTONE_ORTHOGONAL, n)});
+      img_.PutPixelWithGamma(x, y, {ModifyPixelByMap(img_.GetLinearPixel(x, y), x, y, HALFTONE_ORTHOGONAL, n)});
     }
   }
 }
@@ -634,9 +679,9 @@ template<>
 void CDitherer<CMonoPixel>::DoErrorDiffDithering(ErrorDiffMatrix matrix, int n) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
-      CMonoPixel old_pixel = img_.GetPixel(x, y);
+      CMonoPixel old_pixel = img_.GetLinearPixel(x, y);
       CMonoPixel new_pixel = {FindNearestPaletteColor(old_pixel.val, n)};
-      img_.PutPixel(x, y, new_pixel);
+      img_.PutPixelWithGamma(x, y, new_pixel);
       int quant_err = old_pixel.val - new_pixel.val;
       ApplyErrorDiffMatrix(matrix, x, y, quant_err);
     }
@@ -647,11 +692,11 @@ template<>
 void CDitherer<CColorPixel>::DoErrorDiffDithering(ErrorDiffMatrix matrix, int n) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
-      CColorPixel old_pixel = img_.GetPixel(x, y);
+      CColorPixel old_pixel = img_.GetLinearPixel(x, y);
       CColorPixel new_pixel = {FindNearestPaletteColor(old_pixel.r, n),
                                FindNearestPaletteColor(old_pixel.g, n),
                                FindNearestPaletteColor(old_pixel.b, n)};
-      img_.PutPixel(x, y, new_pixel);
+      img_.PutPixelWithGamma(x, y, new_pixel);
       int quant_err_r = old_pixel.r - new_pixel.r;
       int quant_err_g = old_pixel.g - new_pixel.g;
       int quant_err_b = old_pixel.b - new_pixel.b;
@@ -675,15 +720,15 @@ uchar CDitherer<T>::FindNearestPaletteColor(int color_val, int n) {
 }
 
 template<>
-CMonoPixel CDitherer<CMonoPixel>::ModifyPixelByMap(CMonoPixel pixel, int x, int y, SampleBayer bayer, int n) {
-  double resizer = 255.0 / bayer.n;
+CMonoPixel CDitherer<CMonoPixel>::ModifyPixelByMap(CMonoPixel pixel, int x, int y, const SampleBayer& bayer, int n) {
+  double resizer = 255.0 / n;
   return {FindNearestPaletteColor(pixel.val + int(resizer * bayer.data[(y % bayer.n) * bayer.n + x % bayer.n]),
                                   n)};
 }
 
 template<>
-CColorPixel CDitherer<CColorPixel>::ModifyPixelByMap(CColorPixel pixel, int x, int y, SampleBayer bayer, int n) {
-  double resizer = 255.0 / bayer.n;
+CColorPixel CDitherer<CColorPixel>::ModifyPixelByMap(CColorPixel pixel, int x, int y, const SampleBayer& bayer, int n) {
+  double resizer = 255.0 / n;
   return {FindNearestPaletteColor(pixel.r + int(resizer * bayer.data[(y % bayer.n) * bayer.n + x % bayer.n]),
                                   n),
           FindNearestPaletteColor(pixel.g + int(resizer * bayer.data[(y % bayer.n) * bayer.n + x % bayer.n]),

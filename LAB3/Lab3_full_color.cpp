@@ -24,21 +24,20 @@ int main(int argc, char *argv[]) {
       if (gamma == 0) {
         gamma = 2.2;
       }
-      CImage<CMonoPixel> img = CImage<CMonoPixel>(fin, gamma);
-      if (img.GetFileType() != P5) {
+      CImage<CColorPixel> img = CImage<CColorPixel>(fin, gamma);
+      if (img.GetFileType() != P6) {
         throw CImageFileFormatException();
       }
       if (grad == 1) {
         img.FillWithGradient();
       }
-
       if (d < 0 || d > 7) {
         throw CImageFileFormatException();
       }
       if (n_bits < 1 || n_bits > 8) {
         throw CImageFileFormatException();
       }
-      CDitherer<CMonoPixel> ditherer = CDitherer<CMonoPixel>(img);
+      CDitherer<CColorPixel> ditherer = CDitherer<CColorPixel>(img);
       switch (d) {
         case 0: {
           ditherer.DoColorBitCorrection(n_bits);
