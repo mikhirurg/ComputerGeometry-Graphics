@@ -181,11 +181,43 @@ T CImage<T>::GetPixel(int x, int y) const {
 
 template<>
 CMonoPixel CImage<CMonoPixel>::GetLinearPixel(int x, int y) const {
+  if (gamma_ == 0) {
+    double c = GetPixel(x, y).val / double(max_val_);
+    if (c <= 0.04045) {
+      return {uchar(c * max_val_/12.92)};
+    } else {
+      return {uchar(pow((c + 0.055) / 1.055, 2.4) * max_val_)};
+    }
+  }
   return {uchar(round(pow(double(GetPixel(x, y).val) / double(max_val_), gamma_) * max_val_))};
 }
 
 template<>
 CColorPixel CImage<CColorPixel>::GetLinearPixel(int x, int y) const {
+  if (gamma_ == 0) {
+    double c_r = GetPixel(x, y).r / double(max_val_);
+    double c_g = GetPixel(x, y).g / double(max_val_);
+    double c_b = GetPixel(x, y).b / double(max_val_);
+    uchar r = 0;
+    uchar g = 0;
+    uchar b = 0;
+    if (c_r <= 0.04045) {
+      r = uchar(c_r * max_val_/12.92);
+    } else {
+      r = uchar(pow((c_r + 0.055) / 1.055, 2.4) * max_val_);
+    }
+    if (c_g <= 0.04045) {
+      g = uchar(c_g * max_val_/12.92);
+    } else {
+      g = uchar(pow((c_g + 0.055) / 1.055, 2.4) * max_val_);
+    }
+    if (c_b <= 0.04045) {
+      b = uchar(c_b * max_val_/12.92);
+    } else {
+      b = uchar(pow((c_b + 0.055) / 1.055, 2.4) * max_val_);
+    }
+    return {r, g, b};
+  }
   return {uchar(round(pow(double(GetPixel(x, y).r) / double(max_val_), gamma_) * max_val_)),
           uchar(round(pow(double(GetPixel(x, y).g) / double(max_val_), gamma_) * max_val_)),
           uchar(round(pow(double(GetPixel(x, y).b) / double(max_val_), gamma_) * max_val_))};
@@ -201,16 +233,55 @@ void CImage<T>::PutPixel(int x, int y, T pixel) {
 template<>
 void CImage<CMonoPixel>::PutPixelWithGamma(int x, int y, CMonoPixel pixel) {
   if (x >= 0 && y >= 0 && x < w_ && y < h_) {
-    data_[y * w_ + x] = {uchar(round(pow(double(pixel.val) / max_val_, 1.0 / gamma_) * double(max_val_)))};
+    if (gamma_ == 0) {
+      double c = GetPixel(x, y).val / double(max_val_);
+      if (c <= 0.0031308) {
+        data_[y * w_ + x] = {uchar(12.92 * c * max_val_)};
+      } else {
+        data_[y * w_ + x] = {uchar((1.055 * pow(c, 1.0/2.4) - 0.055) * max_val_)};
+      }
+    } else {
+      data_[y * w_ + x] = {uchar(round(pow(double(pixel.val) / max_val_, 1.0 / gamma_) * double(max_val_)))};
+    }
   }
 }
 
 template<>
 void CImage<CColorPixel>::PutPixelWithGamma(int x, int y, CColorPixel pixel) {
   if (x >= 0 && y >= 0 && x < w_ && y < h_) {
-    data_[y * w_ + x] = {uchar(round(pow(double(pixel.r) / double(max_val_), 1.0 / gamma_) * double(max_val_))),
-                         uchar(round(pow(double(pixel.g) / double(max_val_), 1.0 / gamma_) * double(max_val_))),
-                         uchar(round(pow(double(pixel.b) / double(max_val_), 1.0 / gamma_) * double(max_val_)))};
+    if (gamma_ == 0) {
+      double c_r = GetPixel(x, y).r / double(max_val_);
+      double c_g = GetPixel(x, y).g / double(max_val_);
+      double c_b = GetPixel(x, y).b / double(max_val_);
+
+      uchar r = 0;
+      uchar g = 0;
+      uchar b = 0;
+
+      if (c_r <= 0.0031308) {
+        r = uchar(12.92 * c_r * max_val_);
+      } else {
+        r = uchar((1.055 * pow(c_r, 1.0/2.4) - 0.055) * max_val_);
+      }
+
+      if (c_g <= 0.0031308) {
+        g = uchar(12.92 * c_g * max_val_);
+      } else {
+        g = uchar((1.055 * pow(c_g, 1.0/2.4) - 0.055) * max_val_);
+      }
+
+      if (c_b <= 0.0031308) {
+        b = uchar(12.92 * c_b * max_val_);
+      } else {
+        b = uchar((1.055 * pow(c_b, 1.0/2.4) - 0.055) * max_val_);
+      }
+
+      data_[y * w_ + x] = {r, g, b};
+    } else {
+      data_[y * w_ + x] = {uchar(round(pow(double(pixel.r) / double(max_val_), 1.0 / gamma_) * double(max_val_))),
+                           uchar(round(pow(double(pixel.g) / double(max_val_), 1.0 / gamma_) * double(max_val_))),
+                           uchar(round(pow(double(pixel.b) / double(max_val_), 1.0 / gamma_) * double(max_val_)))};
+    }
   }
 }
 

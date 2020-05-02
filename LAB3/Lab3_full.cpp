@@ -21,9 +21,7 @@ int main(int argc, char *argv[]) {
       } catch (std::bad_cast& e_cast) {
         throw CImageParamsException();
       }
-      if (gamma == 0) {
-        gamma = 2.2;
-      }
+
       CImage<CMonoPixel> img = CImage<CMonoPixel>(fin, gamma);
       if (img.GetFileType() != P5) {
         throw CImageFileFormatException();
