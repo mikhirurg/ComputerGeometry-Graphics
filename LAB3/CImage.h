@@ -75,6 +75,10 @@ class CImage {
 
   void FillWithGradient();
 
+  CMonoPixel Clamp(double val);
+
+  CColorPixel Clamp(double val_r, double val_g, double val_b);
+
  private:
   const double eps = 1e-10;
   const int MAX_HEADER_SIZE = 50;
@@ -90,6 +94,7 @@ class CImage {
   double IntPart(double x);
 
   double FloatPart(double x);
+
 };
 
 template<typename T>
@@ -196,16 +201,16 @@ void CImage<T>::PutPixel(int x, int y, T pixel) {
 template<>
 void CImage<CMonoPixel>::PutPixelWithGamma(int x, int y, CMonoPixel pixel) {
   if (x >= 0 && y >= 0 && x < w_ && y < h_) {
-    data_[y * w_ + x] = {uchar(round(pow(double(pixel.val) / max_val_, 1.0/gamma_) * double(max_val_)))};
+    data_[y * w_ + x] = {uchar(round(pow(double(pixel.val) / max_val_, 1.0 / gamma_) * double(max_val_)))};
   }
 }
 
 template<>
 void CImage<CColorPixel>::PutPixelWithGamma(int x, int y, CColorPixel pixel) {
   if (x >= 0 && y >= 0 && x < w_ && y < h_) {
-    data_[y * w_ + x] = {uchar(round(pow(double(pixel.r) / double(max_val_), 1.0/gamma_) * double(max_val_))),
-                         uchar(round(pow(double(pixel.g) / double(max_val_), 1.0/gamma_) * double(max_val_))),
-                         uchar(round(pow(double(pixel.b) / double(max_val_), 1.0/gamma_) * double(max_val_)))};
+    data_[y * w_ + x] = {uchar(round(pow(double(pixel.r) / double(max_val_), 1.0 / gamma_) * double(max_val_))),
+                         uchar(round(pow(double(pixel.g) / double(max_val_), 1.0 / gamma_) * double(max_val_))),
+                         uchar(round(pow(double(pixel.b) / double(max_val_), 1.0 / gamma_) * double(max_val_)))};
   }
 }
 
@@ -314,7 +319,6 @@ CImage<T>::CImage(const CImage<T> &img)
   }
 }
 
-
 template<class T>
 double CImage<T>::IntPart(double x) {
   return floor(x);
@@ -329,23 +333,30 @@ template<>
 void CImage<CMonoPixel>::FillWithGradient() {
   for (int y = 0; y < h_; y++) {
     for (int x = 0; x < w_; x++) {
-      PutPixelWithGamma(x, y, {uchar((double) x / w_ * max_val_)});
+      PutPixelWithGamma(x, y, {uchar((double(x) * max_val_) / w_ + 0.5)});
     }
   }
 }
-
+template<class T>
+CMonoPixel CImage<T>::Clamp(double val) {
+  return {uchar(std::min(std::max(val, 0.0), double(max_val_)))};
+}
+template<class T>
+CColorPixel CImage<T>::Clamp(double val_r, double val_g, double val_b) {
+  return {uchar(std::min(std::max(val_r, 0.0), double(max_val_))),
+          uchar(std::min(std::max(val_g, 0.0), double(max_val_))),
+          uchar(std::min(std::max(val_b, 0.0), double(max_val_)))};
+}
 
 template<>
 void CImage<CColorPixel>::FillWithGradient() {
   for (int y = 0; y < h_; y++) {
     for (int x = 0; x < w_; x++) {
-      PutPixelWithGamma(x, y, {uchar((double) x / w_ * max_val_),
-                      uchar((double) x / w_ * max_val_),
-                      uchar((double) x / w_ * max_val_)});
+      PutPixelWithGamma(x, y, {uchar(((double) x * max_val_) / w_ + 0.5),
+                               uchar(((double) x * max_val_) / w_ + 0.5),
+                               uchar(((double) x * max_val_) / w_ + 0.5)});
     }
   }
 }
-
-
 
 #endif //COMPUTERGEOMETRY_GRAPHICS_CIMAGE_H
