@@ -180,35 +180,37 @@ class CDitherer {
 template<>
 CMonoPixel CDitherer<CMonoPixel>::ModifyPixelByMap(CMonoPixel pixel, int x, int y, const SampleBayer &bayer, int n) {
   double resizer = double(img_.GetMaxVal()) / n;
-  return {(uchar)FindNearestPaletteColor(pixel.val + int(resizer * bayer.data_[(y % bayer.n_) * bayer.n_ + x % bayer.n_]),
-                                  n)};
+  return img_.Clamp(FindNearestPaletteColor(
+      double(pixel.val) + int(resizer * bayer.data_[(y % bayer.n_) * bayer.n_ + x % bayer.n_]),
+      n));
 }
 
 template<>
 CColorPixel CDitherer<CColorPixel>::ModifyPixelByMap(CColorPixel pixel, int x, int y, const SampleBayer &bayer, int n) {
   double resizer = double(img_.GetMaxVal()) / n;
-  return {(uchar)FindNearestPaletteColor(pixel.r + int(resizer * bayer.data_[(y % bayer.n_) * bayer.n_ + x % bayer.n_]),
-                                  n),
-          (uchar)FindNearestPaletteColor(pixel.g + int(resizer * bayer.data_[(y % bayer.n_) * bayer.n_ + x % bayer.n_]),
-                                  n),
-          (uchar)FindNearestPaletteColor(pixel.r + int(resizer * bayer.data_[(y % bayer.n_) * bayer.n_ + x % bayer.n_]),
-                                  n)};
+  return {
+      (uchar) FindNearestPaletteColor(pixel.r + int(resizer * bayer.data_[(y % bayer.n_) * bayer.n_ + x % bayer.n_]),
+                                      n),
+      (uchar) FindNearestPaletteColor(pixel.g + int(resizer * bayer.data_[(y % bayer.n_) * bayer.n_ + x % bayer.n_]),
+                                      n),
+      (uchar) FindNearestPaletteColor(pixel.r + int(resizer * bayer.data_[(y % bayer.n_) * bayer.n_ + x % bayer.n_]),
+                                      n)};
 }
 
 template<>
 CColorPixel CDitherer<CColorPixel>::ModifyPixelByRandom(CColorPixel pixel, int n, int seed) {
   double resizer = double(img_.GetMaxVal()) / n;
   std::uniform_real_distribution<> urd(0 + DBL_EPSILON, 1 + DBL_EPSILON);
-  return {(uchar)FindNearestPaletteColor(pixel.r + int(resizer * urd(rand)), n),
-          (uchar)FindNearestPaletteColor(pixel.g + int(resizer * urd(rand)), n),
-          (uchar)FindNearestPaletteColor(pixel.b + int(resizer * urd(rand)), n)};
+  return {(uchar) FindNearestPaletteColor(pixel.r + int(resizer * urd(rand)), n),
+          (uchar) FindNearestPaletteColor(pixel.g + int(resizer * urd(rand)), n),
+          (uchar) FindNearestPaletteColor(pixel.b + int(resizer * urd(rand)), n)};
 }
 
 template<>
 CMonoPixel CDitherer<CMonoPixel>::ModifyPixelByRandom(CMonoPixel color_val, int n, int seed) {
   double resizer = double(img_.GetMaxVal()) / n;
   std::uniform_real_distribution<> urd(-0.5 + DBL_EPSILON, 0.5 + DBL_EPSILON);
-  return {(uchar)FindNearestPaletteColor(color_val.val + int(resizer * urd(rand)), n)};
+  return {(uchar) FindNearestPaletteColor(color_val.val + int(resizer * urd(rand)), n)};
 }
 
 template<class T>
@@ -365,8 +367,8 @@ void CDitherer<CColorPixel>::DoOrderedDithering(const SampleBayer &bayer, int n)
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
       CColorPixel p = CColorPixel{uchar(round(img_.GetLinearRVal(x, y))),
-                     uchar(round(img_.GetLinearGVal(x, y))),
-                     uchar(round(img_.GetLinearBVal(x, y)))};
+                                  uchar(round(img_.GetLinearGVal(x, y))),
+                                  uchar(round(img_.GetLinearBVal(x, y)))};
       CColorPixel pixel = ModifyPixelByMap(p, x, y, bayer, n);
       img_.PutPixelWithGamma(x, y, pixel.r, pixel.g, pixel.b);
     }
@@ -390,8 +392,8 @@ void CDitherer<CColorPixel>::DoRandomDithering(int n, int seed) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
       CColorPixel p = CColorPixel{uchar(round(img_.GetLinearRVal(x, y))),
-                     uchar(round(img_.GetLinearGVal(x, y))),
-                     uchar(round(img_.GetLinearBVal(x, y)))};
+                                  uchar(round(img_.GetLinearGVal(x, y))),
+                                  uchar(round(img_.GetLinearBVal(x, y)))};
       CColorPixel pixel = ModifyPixelByRandom(p, n, seed);
       img_.PutPixelWithGamma(x, y, pixel.r, pixel.g, pixel.b);
     }
@@ -404,19 +406,21 @@ void CDitherer<CMonoPixel>::DoFloydSteinbergDithering(int n) {
     for (int x = 0; x < img_.GetWidth(); x++) {
       double old_pixel = img_.GetLinearVal(x, y);
       double new_pixel = FindNearestPaletteColor((old_pixel + gray_buffer.Get(x, y)), n);
-      img_.PutPixelWithGamma(x, y, new_pixel);
       double quant_err = old_pixel + gray_buffer.Get(x, y) - new_pixel;
+
+      img_.PutPixelWithGamma(x, y, new_pixel);
+
       if (x + 1 < img_.GetWidth()) {
-        gray_buffer.Add(x + 1, y, double(quant_err * (7.0 / 16.0)));
+        gray_buffer.Add(x + 1, y, quant_err * (7.0 / 16.0));
       }
       if (x - 1 >= 0 && y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x - 1, y + 1, double(quant_err * (3.0 / 16.0)));
+        gray_buffer.Add(x - 1, y + 1, quant_err * (3.0 / 16.0));
       }
       if (y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x, y + 1, double(quant_err * (5.0 / 16.0)));
+        gray_buffer.Add(x, y + 1, quant_err * (5.0 / 16.0));
       }
       if (y + 1 < img_.GetHeight() && x + 1 < img_.GetWidth()) {
-        gray_buffer.Add(x + 1, y + 1, double(quant_err * (1.0 / 16.0)));
+        gray_buffer.Add(x + 1, y + 1, quant_err * (1.0 / 16.0));
       }
     }
   }
@@ -429,13 +433,14 @@ void CDitherer<CColorPixel>::DoFloydSteinbergDithering(int n) {
       double old_pixel_r = img_.GetLinearRVal(x, y);
       double old_pixel_g = img_.GetLinearGVal(x, y);
       double old_pixel_b = img_.GetLinearBVal(x, y);
-      CColorPixel new_pixel = {(uchar)FindNearestPaletteColor(round(double(old_pixel_r) + color_buffer.GetR(x, y)), n),
-                               (uchar)FindNearestPaletteColor(round(double(old_pixel_g) + color_buffer.GetG(x, y)), n),
-                               (uchar)FindNearestPaletteColor(round(double(old_pixel_b) + color_buffer.GetB(x, y)), n)};
-      img_.PutPixelWithGamma(x, y, new_pixel.r, new_pixel.g, new_pixel.b);
-      double quant_err_r = old_pixel_r - new_pixel.r;
-      double quant_err_g = old_pixel_g - new_pixel.g;
-      double quant_err_b = old_pixel_b - new_pixel.b;
+      double new_pixel_r = FindNearestPaletteColor(round(double(old_pixel_r) + color_buffer.GetR(x, y)), n);
+      double new_pixel_g = FindNearestPaletteColor(round(double(old_pixel_g) + color_buffer.GetG(x, y)), n);
+      double new_pixel_b = FindNearestPaletteColor(round(double(old_pixel_b) + color_buffer.GetB(x, y)), n);
+
+      img_.PutPixelWithGamma(x, y, new_pixel_r, new_pixel_g, new_pixel_b);
+      double quant_err_r = old_pixel_r + color_buffer.GetR(x, y) - new_pixel_r;
+      double quant_err_g = old_pixel_g + color_buffer.GetG(x, y) - new_pixel_g;
+      double quant_err_b = old_pixel_b + color_buffer.GetB(x, y) - new_pixel_b;
       if (x + 1 < img_.GetWidth()) {
         color_buffer.Add(x + 1,
                          y,
@@ -475,13 +480,13 @@ void CDitherer<CColorPixel>::DoJJNDithering(int n) {
       double old_pixel_r = img_.GetLinearRVal(x, y);
       double old_pixel_g = img_.GetLinearGVal(x, y);
       double old_pixel_b = img_.GetLinearBVal(x, y);
-      CColorPixel new_pixel = {(uchar)FindNearestPaletteColor(round(double(old_pixel_r) + color_buffer.GetR(x, y)), n),
-                               (uchar)FindNearestPaletteColor(round(double(old_pixel_g) + color_buffer.GetG(x, y)), n),
-                               (uchar)FindNearestPaletteColor(round(double(old_pixel_b) + color_buffer.GetB(x, y)), n)};
-      img_.PutPixelWithGamma(x, y, new_pixel.r, new_pixel.g, new_pixel.b);
-      double quant_err_r = old_pixel_r - new_pixel.r;
-      double quant_err_g = old_pixel_g - new_pixel.g;
-      double quant_err_b = old_pixel_b - new_pixel.b;
+      double new_pixel_r = FindNearestPaletteColor(old_pixel_r + color_buffer.GetR(x, y), n);
+      double new_pixel_g = FindNearestPaletteColor(old_pixel_g + color_buffer.GetG(x, y), n);
+      double new_pixel_b = FindNearestPaletteColor(old_pixel_b + color_buffer.GetB(x, y), n);
+      img_.PutPixelWithGamma(x, y, new_pixel_r, new_pixel_g, new_pixel_b);
+      double quant_err_r = old_pixel_r + color_buffer.GetR(x, y) - new_pixel_r;
+      double quant_err_g = old_pixel_g + color_buffer.GetG(x, y) - new_pixel_g;
+      double quant_err_b = old_pixel_b + color_buffer.GetB(x, y) - new_pixel_b;
 
       double del = 48.0;
 
@@ -576,56 +581,57 @@ void CDitherer<CMonoPixel>::DoJJNDithering(int n) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
       double old_pixel = img_.GetLinearVal(x, y);
-      CMonoPixel new_pixel = {(uchar)FindNearestPaletteColor(round(double(old_pixel) + gray_buffer.Get(x, y)), n)};
-      img_.PutPixelWithGamma(x, y, new_pixel.val);
-      double quant_err = old_pixel - new_pixel.val;
+      double new_pixel = FindNearestPaletteColor(old_pixel + gray_buffer.Get(x, y), n);
+
+      img_.PutPixelWithGamma(x, y, new_pixel);
+      double quant_err = old_pixel + gray_buffer.Get(x, y) - new_pixel;
 
       if (x + 1 < img_.GetWidth()) {
-        gray_buffer.Add(x + 1, y, double((quant_err * 7.0) / 48));
+        gray_buffer.Add(x + 1, y, (quant_err * 7.0) / 48);
       }
 
       if (x + 2 < img_.GetWidth()) {
-        gray_buffer.Add(x + 2, y, double((quant_err * 5.0) / 48));
+        gray_buffer.Add(x + 2, y, (quant_err * 5.0) / 48);
       }
 
       if (x - 2 >= 0 && y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x - 2, y + 1, double((quant_err * 3.0) / 48));
+        gray_buffer.Add(x - 2, y + 1, (quant_err * 3.0) / 48);
       }
 
       if (x - 1 >= 0 && y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x - 1, y + 1, double((quant_err * 5.0) / 48));
+        gray_buffer.Add(x - 1, y + 1, (quant_err * 5.0) / 48);
       }
 
       if (y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x, y + 1, double((quant_err * 7.0) / 48));
+        gray_buffer.Add(x, y + 1, (quant_err * 7.0) / 48);
       }
 
       if (x + 1 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x + 1, y + 1, double((quant_err * 5.0) / 48));
+        gray_buffer.Add(x + 1, y + 1, (quant_err * 5.0) / 48);
       }
 
       if (x + 2 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x + 2, y + 1, double((quant_err * 3.0) / 48));
+        gray_buffer.Add(x + 2, y + 1, (quant_err * 3.0) / 48);
       }
 
       if (x - 2 >= 0 && y + 2 < img_.GetHeight()) {
-        gray_buffer.Add(x - 2, y + 2, double((quant_err) / 48.0));
+        gray_buffer.Add(x - 2, y + 2, (quant_err) / 48.0);
       }
 
       if (x - 1 >= 0 && y + 2 < img_.GetHeight()) {
-        gray_buffer.Add(x - 1, y + 2, double((quant_err * 3.0) / 48));
+        gray_buffer.Add(x - 1, y + 2, (quant_err * 3.0) / 48);
       }
 
       if (y + 2 < img_.GetHeight()) {
-        gray_buffer.Add(x, y + 2, double((quant_err * 5.0) / 48));
+        gray_buffer.Add(x, y + 2, (quant_err * 5.0) / 48);
       }
 
       if (x + 1 < img_.GetWidth() && y + 2 < img_.GetHeight()) {
-        gray_buffer.Add(x + 1, y + 2, double((quant_err * 3.0) / 48));
+        gray_buffer.Add(x + 1, y + 2, (quant_err * 3.0) / 48);
       }
 
       if (x + 2 < img_.GetWidth() && y + 2 < img_.GetHeight()) {
-        gray_buffer.Add(x + 2, y + 2, double((quant_err) / 48.0));
+        gray_buffer.Add(x + 2, y + 2, (quant_err) / 48.0);
       }
     }
   }
@@ -636,32 +642,32 @@ void CDitherer<CMonoPixel>::DoAtkinsonDithering(int n) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
       double old_pixel = img_.GetLinearVal(x, y);
-      CMonoPixel new_pixel = {(uchar)FindNearestPaletteColor(round(double(old_pixel) + gray_buffer.Get(x, y)), n)};
-      double quant_err = old_pixel - new_pixel.val;
-      img_.PutPixelWithGamma(x, y, new_pixel.val);
+      double new_pixel = FindNearestPaletteColor(old_pixel + gray_buffer.Get(x, y), n);
+      double quant_err = old_pixel + gray_buffer.Get(x, y) - new_pixel;
+      img_.PutPixelWithGamma(x, y, new_pixel);
 
       if (x + 1 < img_.GetWidth()) {
-        gray_buffer.Add(x + 1, y, double((quant_err) / 8.0));
+        gray_buffer.Add(x + 1, y, (quant_err) / 8.0);
       }
 
       if (x + 2 < img_.GetWidth()) {
-        gray_buffer.Add(x + 2, y, double((quant_err) / 8.0));
+        gray_buffer.Add(x + 2, y, (quant_err) / 8.0);
       }
 
       if (x - 1 >= 0 && y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x - 1, y + 1, double((quant_err) / 8.0));
+        gray_buffer.Add(x - 1, y + 1, (quant_err) / 8.0);
       }
 
       if (y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x, y + 1, double((quant_err) / 8.0));
+        gray_buffer.Add(x, y + 1, (quant_err) / 8.0);
       }
 
       if (x + 1 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x + 1, y + 1, double((quant_err) / 8.0));
+        gray_buffer.Add(x + 1, y + 1, (quant_err) / 8.0);
       }
 
       if (y + 2 < img_.GetHeight()) {
-        gray_buffer.Add(x, y + 2, double((quant_err) / 8.0));
+        gray_buffer.Add(x, y + 2, (quant_err) / 8.0);
       }
     }
   }
@@ -675,57 +681,57 @@ void CDitherer<CColorPixel>::DoAtkinsonDithering(int n) {
       double old_pixel_g = img_.GetLinearGVal(x, y);
       double old_pixel_b = img_.GetLinearBVal(x, y);
 
-      CColorPixel new_pixel = {(uchar)FindNearestPaletteColor(round(float(old_pixel_r) + color_buffer.GetR(x, y)), n),
-                               (uchar)FindNearestPaletteColor(round(float(old_pixel_g) + color_buffer.GetG(x, y)), n),
-                               (uchar)FindNearestPaletteColor(round(float(old_pixel_b) + color_buffer.GetB(x, y)), n)};
+      double new_pixel_r = FindNearestPaletteColor(old_pixel_r + color_buffer.GetR(x, y), n);
+      double new_pixel_g = FindNearestPaletteColor(old_pixel_g + color_buffer.GetG(x, y), n);
+      double new_pixel_b = FindNearestPaletteColor(old_pixel_b + color_buffer.GetB(x, y), n);
 
-      double quant_err_r = old_pixel_r - new_pixel.r;
-      double quant_err_g = old_pixel_g - new_pixel.g;
-      double quant_err_b = old_pixel_b - new_pixel.b;
+      double quant_err_r = old_pixel_r + color_buffer.GetR(x, y) - new_pixel_r;
+      double quant_err_g = old_pixel_g + color_buffer.GetG(x, y) - new_pixel_g;
+      double quant_err_b = old_pixel_b + color_buffer.GetB(x, y) - new_pixel_b;
 
-      img_.PutPixelWithGamma(x, y, new_pixel.r, new_pixel.g, new_pixel.b);
+      img_.PutPixelWithGamma(x, y, new_pixel_r, new_pixel_g, new_pixel_b);
       if (x + 1 < img_.GetWidth()) {
         color_buffer.Add(x + 1,
                          y,
-                         double((quant_err_r) / 8.0),
-                         double((quant_err_g) / 8.0),
-                         double((quant_err_b) / 8.0));
+                         (quant_err_r) / 8.0,
+                         (quant_err_g) / 8.0,
+                         (quant_err_b) / 8.0);
       }
 
       if (x + 2 < img_.GetWidth()) {
         color_buffer.Add(x + 2,
                          y,
-                         double((quant_err_r) / 8.0),
-                         double((quant_err_g) / 8.0),
-                         double((quant_err_b) / 8.0));
+                         (quant_err_r) / 8.0,
+                         (quant_err_g) / 8.0,
+                         (quant_err_b) / 8.0);
       }
 
       if (x - 1 >= 0 && y + 1 < img_.GetHeight()) {
         color_buffer.Add(x - 1,
                          y + 1,
-                         double((quant_err_r) / 8.0),
-                         double((quant_err_g) / 8.0),
-                         double((quant_err_r) / 8.0));
+                         (quant_err_r) / 8.0,
+                         (quant_err_g) / 8.0,
+                         (quant_err_r) / 8.0);
       }
 
       if (y + 1 < img_.GetHeight()) {
         color_buffer.Add(x,
                          y + 1,
-                         double((quant_err_r) / 8.0),
-                         double((quant_err_g) / 8.0),
-                         double((quant_err_b) / 8.0));
+                         (quant_err_r) / 8.0,
+                         (quant_err_g) / 8.0,
+                         (quant_err_b) / 8.0);
       }
 
       if (x + 1 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
         color_buffer.Add(x + 1,
                          y + 1,
-                         float((quant_err_r) / 8.0),
-                         float((quant_err_g) / 8.0),
-                         float((quant_err_b) / 8.0));
+                         (quant_err_r) / 8.0,
+                         (quant_err_g) / 8.0,
+                         (quant_err_b) / 8.0);
       }
 
       if (y + 2 < img_.GetHeight()) {
-        color_buffer.Add(x, y + 2, float((quant_err_r) / 8.0), float((quant_err_g) / 8.0), float((quant_err_b) / 8.0));
+        color_buffer.Add(x, y + 2, (quant_err_r) / 8.0, (quant_err_g) / 8.0, (quant_err_b) / 8.0);
       }
     }
   }
@@ -736,47 +742,47 @@ void CDitherer<CMonoPixel>::DoSierraDithering(int n) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
       double old_pixel = img_.GetLinearVal(x, y);
-      CMonoPixel new_pixel = {(uchar)FindNearestPaletteColor(round(float(old_pixel) + gray_buffer.Get(x, y)), n)};
-      img_.PutPixelWithGamma(x, y, new_pixel.val);
-      int quant_err = old_pixel - new_pixel.val;
+      double new_pixel = FindNearestPaletteColor(old_pixel + gray_buffer.Get(x, y), n);
+      img_.PutPixelWithGamma(x, y, new_pixel);
+      double quant_err = old_pixel + gray_buffer.Get(x, y) - new_pixel;
       if (x + 1 < img_.GetWidth()) {
-        gray_buffer.Add(x + 1, y, double((quant_err * 5.0) / 32));
+        gray_buffer.Add(x + 1, y, (quant_err * 5.0) / 32);
       }
 
       if (x + 2 < img_.GetWidth()) {
-        gray_buffer.Add(x + 2, y, double((quant_err * 3.0) / 32));
+        gray_buffer.Add(x + 2, y, (quant_err * 3.0) / 32);
       }
 
       if (x - 2 >= 0 && y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x - 2, y + 1, double((quant_err * 2.0) / 32));
+        gray_buffer.Add(x - 2, y + 1, (quant_err * 2.0) / 32);
       }
 
       if (x - 1 >= 0 && y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x - 1, y + 1, double((quant_err * 4.0) / 32));
+        gray_buffer.Add(x - 1, y + 1, (quant_err * 4.0) / 32);
       }
 
       if (y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x, y + 1, double((quant_err * 5.0) / 32));
+        gray_buffer.Add(x, y + 1, (quant_err * 5.0) / 32);
       }
 
       if (x + 1 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x + 1, y + 1, double((quant_err * 4.0) / 32));
+        gray_buffer.Add(x + 1, y + 1, (quant_err * 4.0) / 32);
       }
 
       if (x + 2 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
-        gray_buffer.Add(x + 2, y + 1, double((quant_err * 2.0) / 32));
+        gray_buffer.Add(x + 2, y + 1, (quant_err * 2.0) / 32);
       }
 
       if (x - 1 >= 0 && y + 2 < img_.GetHeight()) {
-        gray_buffer.Add(x - 1, y + 2, double((quant_err * 2.0) / 32));
+        gray_buffer.Add(x - 1, y + 2, (quant_err * 2.0) / 32);
       }
 
       if (y + 2 < img_.GetHeight()) {
-        gray_buffer.Add(x, y + 2, double((quant_err * 3.0) / 32));
+        gray_buffer.Add(x, y + 2, (quant_err * 3.0) / 32);
       }
 
       if (x + 1 < img_.GetWidth() && y + 2 < img_.GetHeight()) {
-        gray_buffer.Add(x + 1, y + 2, double((quant_err * 2.0) / 32));
+        gray_buffer.Add(x + 1, y + 2, (quant_err * 2.0) / 32);
       }
     }
   }
@@ -789,92 +795,94 @@ void CDitherer<CColorPixel>::DoSierraDithering(int n) {
       double old_pixel_r = img_.GetLinearRVal(x, y);
       double old_pixel_g = img_.GetLinearGVal(x, y);
       double old_pixel_b = img_.GetLinearBVal(x, y);
-      CColorPixel new_pixel = {(uchar)FindNearestPaletteColor(round(double(old_pixel_r) + color_buffer.GetR(x, y)), n),
-                               (uchar)FindNearestPaletteColor(round(double(old_pixel_g) + color_buffer.GetG(x, y)), n),
-                               (uchar)FindNearestPaletteColor(round(double(old_pixel_b) + color_buffer.GetB(x, y)), n)};
-      img_.PutPixelWithGamma(x, y, new_pixel.r, new_pixel.g, new_pixel.b);
-      double quant_err_r = old_pixel_r - new_pixel.r;
-      double quant_err_g = old_pixel_g - new_pixel.g;
-      double quant_err_b = old_pixel_b - new_pixel.b;
+
+      double new_pixel_r = FindNearestPaletteColor(old_pixel_r + color_buffer.GetR(x, y), n);
+      double new_pixel_g = FindNearestPaletteColor(old_pixel_g + color_buffer.GetG(x, y), n);
+      double new_pixel_b = FindNearestPaletteColor(old_pixel_b + color_buffer.GetB(x, y), n);
+
+      img_.PutPixelWithGamma(x, y, new_pixel_r, new_pixel_g, new_pixel_b);
+      double quant_err_r = old_pixel_r + color_buffer.GetR(x, y) - new_pixel_r;
+      double quant_err_g = old_pixel_g + color_buffer.GetG(x, y) - new_pixel_g;
+      double quant_err_b = old_pixel_b + color_buffer.GetB(x, y) - new_pixel_b;
 
       if (x + 1 < img_.GetWidth()) {
         color_buffer.Add(x + 1,
                          y,
-                         double((quant_err_r * 5.0) / 32),
-                         double((quant_err_r * 5.0) / 32),
-                         double((quant_err_r * 5.0) / 32));
+                         (quant_err_r * 5.0) / 32,
+                         (quant_err_g * 5.0) / 32,
+                         (quant_err_b * 5.0) / 32);
       }
 
       if (x + 2 < img_.GetWidth()) {
         color_buffer.Add(x + 2,
                          y,
-                         double((quant_err_r * 3.0) / 32),
-                         double((quant_err_r * 3.0) / 32),
-                         double((quant_err_r * 3.0) / 32));
+                         (quant_err_r * 3.0) / 32,
+                         (quant_err_g * 3.0) / 32,
+                         (quant_err_b * 3.0) / 32);
       }
 
       if (x - 2 >= 0 && y + 1 < img_.GetHeight()) {
         color_buffer.Add(x - 2,
                          y + 1,
-                         double((quant_err_r * 2.0) / 32),
-                         double((quant_err_r * 2.0) / 32),
-                         double((quant_err_r * 2.0) / 32));
+                         (quant_err_r * 2.0) / 32,
+                         (quant_err_g * 2.0) / 32,
+                         (quant_err_b * 2.0) / 32);
       }
 
       if (x - 1 >= 0 && y + 1 < img_.GetHeight()) {
         color_buffer.Add(x - 1,
                          y + 1,
-                         double((quant_err_r * 4.0) / 32),
-                         double((quant_err_r * 4.0) / 32),
-                         double((quant_err_r * 4.0) / 32));
+                         (quant_err_r * 4.0) / 32,
+                         (quant_err_g * 4.0) / 32,
+                         (quant_err_b * 4.0) / 32);
       }
 
       if (y + 1 < img_.GetHeight()) {
         color_buffer.Add(x,
                          y + 1,
-                         double((quant_err_r * 5.0) / 32),
-                         double((quant_err_r * 5.0) / 32),
-                         double((quant_err_r * 5.0) / 32));
+                         (quant_err_r * 5.0) / 32,
+                         (quant_err_g * 5.0) / 32,
+                         (quant_err_b * 5.0) / 32);
       }
 
       if (x + 1 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
         color_buffer.Add(x + 1,
                          y + 1,
-                         double((quant_err_r * 4.0) / 32),
-                         double((quant_err_r * 4.0) / 32),
-                         double((quant_err_r * 4.0) / 32));
+                         (quant_err_r * 4.0) / 32,
+                         (quant_err_g * 4.0) / 32,
+                         (quant_err_b * 4.0) / 32);
       }
 
       if (x + 2 < img_.GetWidth() && y + 1 < img_.GetHeight()) {
         color_buffer.Add(x + 2,
                          y + 1,
-                         double((quant_err_r * 2.0) / 32),
-                         double((quant_err_r * 2.0) / 32),
-                         double((quant_err_r * 2.0) / 32));
+                         (quant_err_r * 2.0) / 32,
+                         (quant_err_g * 2.0) / 32,
+                         (quant_err_b * 2.0) / 32);
       }
 
       if (x - 1 >= 0 && y + 2 < img_.GetHeight()) {
         color_buffer.Add(x - 1,
                          y + 2,
-                         double((quant_err_r * 2.0) / 32),
-                         double((quant_err_r * 2.0) / 32),
-                         double((quant_err_r * 2.0) / 32));
+                         (quant_err_r * 2.0) / 32,
+                         (quant_err_g * 2.0) / 32,
+                         (quant_err_b * 2.0) / 32);
       }
 
       if (y + 2 < img_.GetHeight()) {
         color_buffer.Add(x,
                          y + 2,
-                         double((quant_err_r * 3.0) / 32),
-                         double((quant_err_r * 3.0) / 32),
-                         double((quant_err_r * 3.0) / 32));
+                         (quant_err_r * 3.0) / 32,
+                         (quant_err_g * 3.0) / 32,
+                         (quant_err_b * 3.0) / 32);
       }
 
       if (x + 1 < img_.GetWidth() && y + 2 < img_.GetHeight()) {
         color_buffer.Add(x + 1,
                          y + 2,
-                         double((quant_err_r * 2.0) / 32),
-                         double((quant_err_r * 2.0) / 32),
-                         double((quant_err_r * 2.0) / 32));
+                         (quant_err_r * 2.0) / 32,
+                         (quant_err_g * 2.0) / 32,
+                         (quant_err_b * 2.0) / 32);
       }
     }
   }
@@ -884,7 +892,7 @@ template<>
 void CDitherer<CMonoPixel>::DoHalftoneDithering(int n) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
-      CMonoPixel p = CMonoPixel{uchar(round(img_.GetLinearVal(x, y)))};
+      CMonoPixel p = img_.Clamp(img_.GetLinearVal(x, y));
       CMonoPixel pixel = ModifyPixelByMap(p, x, y, HALFTONE_ORTHOGONAL, n);
       img_.PutPixelWithGamma(x, y, pixel.val);
     }
@@ -896,8 +904,8 @@ void CDitherer<CColorPixel>::DoHalftoneDithering(int n) {
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
       CColorPixel p = CColorPixel{uchar(round(img_.GetLinearRVal(x, y))),
-                     uchar(round(img_.GetLinearGVal(x, y))),
-                     uchar(round(img_.GetLinearBVal(x, y)))};
+                                  uchar(round(img_.GetLinearGVal(x, y))),
+                                  uchar(round(img_.GetLinearBVal(x, y)))};
       CColorPixel pixel = ModifyPixelByMap(p, x, y, HALFTONE_ORTHOGONAL, n);
       img_.PutPixelWithGamma(x, y, pixel.r, pixel.g, pixel.b);
     }
@@ -909,9 +917,9 @@ void CDitherer<CMonoPixel>::DoErrorDiffDithering(const ErrorDiffMatrix &matrix, 
   for (int y = 0; y < img_.GetHeight(); y++) {
     for (int x = 0; x < img_.GetWidth(); x++) {
       double old_pixel = img_.GetLinearVal(x, y);
-      CMonoPixel new_pixel = {(uchar)FindNearestPaletteColor(round(double(old_pixel) + gray_buffer.Get(x, y)), n)};
-      img_.PutPixelWithGamma(x, y, new_pixel.val);
-      double quant_err = old_pixel - new_pixel.val;
+      double new_pixel = FindNearestPaletteColor(double(old_pixel) + gray_buffer.Get(x, y), n);
+      img_.PutPixelWithGamma(x, y, new_pixel);
+      double quant_err = old_pixel - new_pixel;
       ApplyErrorDiffMatrix(matrix, x, y, quant_err);
     }
   }
@@ -924,13 +932,15 @@ void CDitherer<CColorPixel>::DoErrorDiffDithering(const ErrorDiffMatrix &matrix,
       double old_pixel_r = img_.GetLinearRVal(x, y);
       double old_pixel_g = img_.GetLinearGVal(x, y);
       double old_pixel_b = img_.GetLinearBVal(x, y);
-      CColorPixel new_pixel = {(uchar)FindNearestPaletteColor(round(double(old_pixel_r) + color_buffer.GetR(x, y)), n),
-                               (uchar)FindNearestPaletteColor(round(double(old_pixel_g) + color_buffer.GetG(x, y)), n),
-                               (uchar)FindNearestPaletteColor(round(double(old_pixel_b) + color_buffer.GetB(x, y)), n)};
-      img_.PutPixelWithGamma(x, y, new_pixel.r, new_pixel.g, new_pixel.b);
-      double quant_err_r = old_pixel_r - new_pixel.r;
-      double quant_err_g = old_pixel_g - new_pixel.g;
-      double quant_err_b = old_pixel_b - new_pixel.b;
+
+      double new_pixel_r = FindNearestPaletteColor(double(old_pixel_r) + color_buffer.GetR(x, y), n);
+      double new_pixel_g = FindNearestPaletteColor(double(old_pixel_g) + color_buffer.GetG(x, y), n);
+      double new_pixel_b = FindNearestPaletteColor(double(old_pixel_b) + color_buffer.GetB(x, y), n);
+
+      img_.PutPixelWithGamma(x, y, new_pixel_r, new_pixel_g, new_pixel_b);
+      double quant_err_r = old_pixel_r - new_pixel_r;
+      double quant_err_g = old_pixel_g - new_pixel_g;
+      double quant_err_b = old_pixel_b - new_pixel_b;
 
       ApplyErrorDiffMatrix(matrix, x, y, quant_err_r, quant_err_g, quant_err_b);
     }
@@ -939,6 +949,7 @@ void CDitherer<CColorPixel>::DoErrorDiffDithering(const ErrorDiffMatrix &matrix,
 
 template<class T>
 double CDitherer<T>::FindNearestPaletteColor(double color_val, int n) {
+  color_val = std::max(std::min(255.0, color_val), 0.0);
   int levels = pow(2, n);
   double interval_len = double(img_.GetMaxVal()) / (levels - 1);
   double thresh_ind = round((color_val) / interval_len);

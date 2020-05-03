@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
         d = std::stoi(argv[4]);
         n_bits = std::stoi(argv[5]);
         gamma = std::stod(argv[6]);
-      } catch (std::bad_cast& e_cast) {
+      } catch (std::bad_cast &e_cast) {
         throw CImageParamsException();
       }
 

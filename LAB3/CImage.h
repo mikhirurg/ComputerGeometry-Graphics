@@ -69,7 +69,6 @@ class CImage {
 
   void PutPixelWithGamma(int x, int y, double val_r, double val_g, double val_b);
 
-
   void CorrectImageWithGamma();
 
   T *operator[](int i);
@@ -193,7 +192,7 @@ double CImage<CMonoPixel>::GetLinearVal(int x, int y) const {
   if (gamma_ == 0) {
     double c = GetPixel(x, y).val / double(max_val_);
     if (c <= 0.04045) {
-      return c * max_val_/12.92;
+      return c * max_val_ / 12.92;
     } else {
       return pow((c + 0.055) / 1.055, 2.4) * double(max_val_);
     }
@@ -206,7 +205,7 @@ double CImage<CColorPixel>::GetLinearRVal(int x, int y) const {
   if (gamma_ == 0) {
     double c = GetPixel(x, y).r / double(max_val_);
     if (c <= 0.04045) {
-      return c * max_val_/12.92;
+      return c * max_val_ / 12.92;
     } else {
       return pow((c + 0.055) / 1.055, 2.4) * max_val_;
     }
@@ -219,7 +218,7 @@ double CImage<CColorPixel>::GetLinearGVal(int x, int y) const {
   if (gamma_ == 0) {
     double c = GetPixel(x, y).g / double(max_val_);
     if (c <= 0.04045) {
-      return c * max_val_/12.92;
+      return c * max_val_ / 12.92;
     } else {
       return pow((c + 0.055) / 1.055, 2.4) * max_val_;
     }
@@ -232,7 +231,7 @@ double CImage<CColorPixel>::GetLinearBVal(int x, int y) const {
   if (gamma_ == 0) {
     double c = GetPixel(x, y).b / double(max_val_);
     if (c <= 0.04045) {
-      return c * max_val_/12.92;
+      return c * max_val_ / 12.92;
     } else {
       return pow((c + 0.055) / 1.055, 2.4) * max_val_;
     }
@@ -255,7 +254,7 @@ void CImage<CMonoPixel>::PutPixelWithGamma(int x, int y, double val) {
       if (c <= 0.0031308) {
         data_[y * w_ + x] = Clamp(12.92 * c * max_val_);
       } else {
-        data_[y * w_ + x] = Clamp((1.055 * pow(c, 1.0/2.4) - 0.055) * max_val_);
+        data_[y * w_ + x] = Clamp((1.055 * pow(c, 1.0 / 2.4) - 0.055) * max_val_);
       }
     } else {
       data_[y * w_ + x] = Clamp(round(pow(val / max_val_, 1.0 / gamma_) * double(max_val_)));
@@ -276,17 +275,17 @@ void CImage<CColorPixel>::PutPixelWithGamma(int x, int y, double val_r, double v
       if (c_r <= 0.0031308) {
         r = uchar(12.92 * c_r * max_val_);
       } else {
-        r = uchar((1.055 * pow(c_r, 1.0/2.4) - 0.055) * max_val_);
+        r = uchar((1.055 * pow(c_r, 1.0 / 2.4) - 0.055) * max_val_);
       }
       if (c_g <= 0.0031308) {
         g = uchar(12.92 * c_g * max_val_);
       } else {
-        g = uchar((1.055 * pow(c_g, 1.0/2.4) - 0.055) * max_val_);
+        g = uchar((1.055 * pow(c_g, 1.0 / 2.4) - 0.055) * max_val_);
       }
       if (c_b <= 0.0031308) {
         b = uchar(12.92 * c_b * max_val_);
       } else {
-        b = uchar((1.055 * pow(c_b, 1.0/2.4) - 0.055) * max_val_);
+        b = uchar((1.055 * pow(c_b, 1.0 / 2.4) - 0.055) * max_val_);
       }
       data_[y * w_ + x] = {r, g, b};
     } else {
@@ -435,7 +434,7 @@ template<>
 void CImage<CColorPixel>::FillWithGradient() {
   for (int y = 0; y < h_; y++) {
     for (int x = 0; x < w_; x++) {
-      PutPixelWithGamma(x, y, (double) x * max_val_ / w_,(double) x * max_val_ / w_,(double) x * max_val_ / w_);
+      PutPixelWithGamma(x, y, (double) x * max_val_ / w_, (double) x * max_val_ / w_, (double) x * max_val_ / w_);
     }
   }
 }
