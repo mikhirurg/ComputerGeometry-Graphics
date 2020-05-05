@@ -193,7 +193,7 @@ CColorPixel CDitherer<CColorPixel>::ModifyPixelByMap(CColorPixel pixel, int x, i
                                       n),
       (uchar) FindNearestPaletteColor(pixel.g + int(resizer * bayer.data_[(y % bayer.n_) * bayer.n_ + x % bayer.n_]),
                                       n),
-      (uchar) FindNearestPaletteColor(pixel.r + int(resizer * bayer.data_[(y % bayer.n_) * bayer.n_ + x % bayer.n_]),
+      (uchar) FindNearestPaletteColor(pixel.b + int(resizer * bayer.data_[(y % bayer.n_) * bayer.n_ + x % bayer.n_]),
                                       n)};
 }
 
