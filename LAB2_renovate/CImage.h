@@ -125,8 +125,9 @@ class CImage {
     }
 
     void close() {
-      if (points.empty()) return;
-      points.end()->last_point = true;
+      if (!points.empty()) {
+        points[points.size()-1].last_point = true;
+      }
     }
 
     int size() {

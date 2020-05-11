@@ -13,7 +13,7 @@
 #include "CImageFileFormatException.h"
 #include "CImageFileReadException.h"
 
-//#define DUMP_TMP
+#define DUMP_TMP
 
 template<typename T>
 CImage<T>::CImage(const std::string &fname)
@@ -498,6 +498,7 @@ void CImage<T>::FillPolygon(Polygon &polygon, CImage<T> &img, T color) {
   int counter_mask = -1;
 
   if (polygon.size() <= 1) return;
+
   std::map<int, std::set<int>> y_hash;
 
   for (int i = 0; i < polygon.size(); i++) {
