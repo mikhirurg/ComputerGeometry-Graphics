@@ -221,6 +221,17 @@ CImage<T>::CalculateLineBorderPoints(double thickness, double x1, double y1,
   y1 += 0.5;
   x2 += 0.5;
   y2 += 0.5;
+
+  double l = sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+  double th2 = thickness / 2;
+  double ex = (x2 - x1) / l;
+  double ey = (y2 - y1) / l;
+  x1 -= ex * th2;
+  y1 -= ey * th2;
+
+  x2 += ex * th2;
+  y2 += ey * th2;
+
   if (std::abs(y2 - y1) > eps) {
     double d = (x2 - x1) / (y2 - y1);
     double a = 1 + d * d;
@@ -304,7 +315,7 @@ std::pair<double, double> CImage<T>::GetScaledBounds(
     y_min = floor(std::min(y_min, p.second));
     y_max = ceil(std::max(y_max, p.second));
   }
-  return std::make_pair(x_max - x_min + scale_x, y_max - y_min + scale_y);
+  return std::make_pair(x_max - x_min, y_max - y_min);
 }
 
 template<class T>
@@ -316,7 +327,7 @@ std::pair<double, double> CImage<T>::GetUpperCorner(
     x_min = std::min(x_min, p.first);
     y_min = std::min(y_min, p.second);
   }
-  return std::make_pair(x_min, floor(y_min));
+  return std::make_pair(floor(x_min), floor(y_min));
 }
 
 template<class T>
@@ -427,7 +438,7 @@ void CImage<T>::ShiftPoints(std::vector<std::pair<double, double>> &points,
 }
 
 template<class T>
-void CImage<T>::Polygon::addActive(int p, int cy) {
+void CImage<T>::Polygon::addActive(int p, double cy) {
   Point &np = (*this)[p + 1];
   Point &pnt = (*this)[p];
   Edge &ne = active[nact];
@@ -476,11 +487,11 @@ void CImage<T>::FillPolygon(Polygon &polygon, CImage<T> &img, T color) {
   double k, y, xl, xr;
   int drawing;
   int right_bound = img.GetWidth() - 1;
-  int y_min = polygon.getYMin();
-  int y_max = polygon.getYMax();
+  double y_min = polygon.getYMin();
+  double y_max = polygon.getYMax();
   int hash_size = (int(y_max - y_min)) + 4;
 
-  int hash_offset = (int) ceil(y_min - DBL_EPSILON);
+  int hash_offset = (int) ceil(y_min - 0.5 - eps);
 
   int counter;
 
@@ -491,13 +502,13 @@ void CImage<T>::FillPolygon(Polygon &polygon, CImage<T> &img, T color) {
 
   for (int i = 0; i < polygon.size(); i++) {
     Point &next_point = polygon[i + 1];
-    int key = (int) ceil(polygon[i].y - hash_offset);
+    int key = (int) ceil(polygon[i].y - hash_offset - 0.5);
     y_hash[key].insert(i);
     polygon[i].edge = 0;
   }
 
-  for (y = hash_offset, k = 0;
-       y <= y_max && k < hash_size; y += 1, k++) {
+  for (y = hash_offset + 0.5, k = 0;
+       y <= y_max && k <= hash_size; y += 1.0, k++) {
     for (auto it = y_hash[k].begin(); it != y_hash[k].end(); ++it) {
       Point &prev = polygon[*it - 1];
       Point &next = polygon[*it + 1];
@@ -531,7 +542,7 @@ void CImage<T>::FillPolygon(Polygon &polygon, CImage<T> &img, T color) {
     for (auto curEdge : polygon.active_list) {
       counter += curEdge->dir;
       if ((counter & counter_mask) && !drawing) {
-        xl = ceil(curEdge->x);
+        xl = floor(curEdge->x);
         drawing = 1;
       }
 

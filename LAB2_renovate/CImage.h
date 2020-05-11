@@ -86,11 +86,11 @@ class CImage {
     double y_min;
     double y_max;
 
-    int getYMin() const {
+    double getYMin() const {
       return y_min;
     }
 
-    int getYMax() const {
+    double getYMax() const {
       return y_max;
     }
 
@@ -139,7 +139,7 @@ class CImage {
 
     void delActive(Edge *e);
 
-    void addActive(int pnt, int cy);
+    void addActive(int pnt, double cy);
 
     void sortActive();
 
