@@ -148,7 +148,7 @@ class CImage {
 
   void FillPolygon(Polygon &polygon, CImage<T> &img, T color);
 
-  void plot(CImage &img, double x, double y, double c, CMonoPixel bright, double gamma);
+  void plot(CImage &img, double x, double y, double alpha, CMonoPixel bright, double gamma);
 
   double intPart(double x);
 

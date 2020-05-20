@@ -13,7 +13,7 @@
 #include "CImageFileFormatException.h"
 #include "CImageFileReadException.h"
 
-#define DUMP_TMP
+//#define DUMP_TMP
 
 template<typename T>
 CImage<T>::CImage(const std::string &fname)
@@ -360,12 +360,10 @@ CImage<T>::DrawDownscaled(const CImage<CMonoPixel> &img, int scale_x,
 
 template<class T>
 void
-CImage<T>::plot(CImage &img, double x, double y, double c, CMonoPixel bright,
+CImage<T>::plot(CImage &img, double x, double y, double alpha, CMonoPixel bright,
                 double gamma) {
   if (x >= 0 && y >= 0 && x < img.GetWidth() && y < img.GetHeight()) {
-    img.PutPixel(x, y, apply_alpha(bright, img.GetPixel(x, y),
-                                   pow(c / img.GetMaxVal(), 1 / gamma) *
-                                       img.GetMaxVal(), gamma));
+    img.PutPixel(x, y, apply_alpha(bright, img.GetPixel(x, y), alpha, gamma));
   }
 }
 
@@ -402,27 +400,27 @@ void CImage<T>::DrawWuLine(CMonoPixel brightness, double thickness, double x1,
   }
 
   if (check) {
-    plot(*this, y1, x1, brightness.val, brightness, gamma);
-    plot(*this, y2, x2, brightness.val, brightness, gamma);
+    plot(*this, y1, x1, max_val_, brightness, gamma);
+    plot(*this, y2, x2, max_val_, brightness, gamma);
     double y = y1 + delta;
     for (double x = x1 + 1.0; x < x2; x++) {
       plot(*this, intPart(y), x,
-           (double) brightness.val * (1.0 - FloatPart(y)), brightness,
+           (double) max_val_ * (1.0 - FloatPart(y)), brightness,
            gamma);
       plot(*this, intPart(y) + 1.0, x,
-           (double) brightness.val * FloatPart(y), brightness, gamma);
+           (double) max_val_ * FloatPart(y), brightness, gamma);
       y += delta;
     }
   } else {
-    plot(*this, x1, y1, brightness.val, brightness, gamma);
-    plot(*this, x2, y2, brightness.val, brightness, gamma);
+    plot(*this, x1, y1, max_val_, brightness, gamma);
+    plot(*this, x2, y2, max_val_, brightness, gamma);
     double y = y1 + delta;
     for (double x = x1 + 1.0; x < x2; x++) {
       plot(*this, x, intPart(y),
-           (double) brightness.val * (1.0 - FloatPart(y)), brightness,
+           (double) max_val_ * (1.0 - FloatPart(y)), brightness,
            gamma);
       plot(*this, x, intPart(y) + 1.0,
-           (double) brightness.val * FloatPart(y), brightness, gamma);
+           (double) max_val_ * FloatPart(y), brightness, gamma);
       y += delta;
     }
   }
