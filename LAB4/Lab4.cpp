@@ -97,14 +97,16 @@ int main(int argc, char *argv[]) {
     // log();
 
     std::string input_name = glob_args.in_name.substr(0, glob_args.in_name.find('.'));
+    std::string input_ext = glob_args.in_name.substr(glob_args.in_name.find('.'), glob_args.in_name.length());
     std::string output_name = glob_args.out_name.substr(0, glob_args.out_name.find('.'));
+    std::string output_ext = glob_args.out_name.substr(glob_args.out_name.find('.'), glob_args.out_name.length());
 
     CImage<CColorPixel> *p_img;
 
     if (glob_args.in_count == 3) {
-      CImage<CMonoPixel> img1 = CImage<CMonoPixel>(input_name + "_1.ext", 1);
-      CImage<CMonoPixel> img2 = CImage<CMonoPixel>(input_name + "_2.ext", 1);
-      CImage<CMonoPixel> img3 = CImage<CMonoPixel>(input_name + "_3.ext", 1);
+      CImage<CMonoPixel> img1 = CImage<CMonoPixel>(input_name+"_1"+input_ext, 1);
+      CImage<CMonoPixel> img2 = CImage<CMonoPixel>(input_name+"_2"+input_ext, 1);
+      CImage<CMonoPixel> img3 = CImage<CMonoPixel>(input_name+"_3"+input_ext, 1);
       p_img = new CImage<CColorPixel>(img1, img2, img3);
     } else {
       p_img = new CImage<CColorPixel>(glob_args.in_name, 1);
@@ -151,9 +153,9 @@ int main(int argc, char *argv[]) {
       auto R = tmp.GetImageByChannel('R');
       auto G = tmp.GetImageByChannel('G');
       auto B = tmp.GetImageByChannel('B');
-      R->WriteImg(output_name + "_1.ext");
-      G->WriteImg(output_name + "_2.ext");
-      B->WriteImg(output_name + "_3.ext");
+      R->WriteImg(input_name+"_1"+output_ext);
+      G->WriteImg(input_name+"_2"+output_ext);
+      B->WriteImg(input_name+"_3"+output_ext);
       delete R;
       delete G;
       delete B;

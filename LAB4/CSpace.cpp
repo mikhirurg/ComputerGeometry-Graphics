@@ -43,163 +43,161 @@ CColorPixel HSV::ToRGB(CColorPixel c) {
 }
 
 CColorPixelDbl HSV::FromRGB(CColorPixelDbl c) {
-  double R = c.r * 255.0, G = c.g * 255.0, B = c.b * 255.0;
+  double R = c.r, G = c.g, B = c.b;
   double c_high = std::fmax(R, std::fmax(G, B));
   double c_low = std::fmin(R, std::fmin(G, B));
-  double c_rng = c_high - c_low;
+  double c_range = c_high - c_low;
   double H = 0, S = 0, V;
   double c_max = 255.0;
 
-  V = c_high / c_max;
+  V = c_high;
 
-  if (c_high > 0) {
-    S = c_rng / c_high;
+  if (V == 0) {
+    S = 0;
+  } else {
+    S = c_range / V;
   }
 
-  if (c_rng > 0) {
-    double rr = (c_high - R) / c_rng;
-    double gg = (c_high - G) / c_rng;
-    double bb = (c_high - B) / c_rng;
-    double hh;
-    if (R == c_high) {
-      hh = bb - gg;
-    } else if (G == c_high) {
-      hh = rr - bb + 2.0;
-    } else {
-      hh = gg - rr + 4.0;
+  if (c_range > 0) {
+    if (V == R) {
+      H = 60 * (G - B) / c_range;
+    } else if (V == G) {
+      H = 60 * (2 + (B - R) / c_range);
+    } else if (V == B) {
+      H = 60 * (4 + (R - G) / c_range);
     }
-    if (hh < 0) {
-      hh = hh + 6.0;
-    }
-    H = hh / 6.0;
   }
-  return {H, S, V};
+  return {H / 360.0, S, V};
 }
 
 CColorPixelDbl HSV::ToRGB(CColorPixelDbl c) {
-  double H = c.h, S = c.s, V = c.v;
-  double r = 0, g = 0, b = 0;
-  double hh = ((long) (6 * H)) % 6;
-  int c1 = (long) hh;
-  double c2 = hh - c1;
-  double x = (1 - S) * V;
-  double y = (1 - (S * c2)) * V;
-  double z = (1 - (S * (1 - c2))) * V;
-  switch (c1) {
-    case 0:r = V;
-      g = z;
-      b = x;
-      break;
-    case 1:r = y;
-      g = V;
-      b = x;
-      break;
-    case 2:r = x;
-      g = V;
-      b = z;
-      break;
-    case 3:r = x;
-      g = y;
-      b = V;
-      break;
-    case 4:r = z;
-      g = x;
-      b = V;
-      break;
-    case 5:r = V;
-      g = x;
-      b = y;
-      break;
+  double H = c.h * 360, S = c.s, V = c.v;
+
+  double C = S * V;
+
+  double h_s = H / 60;
+
+  double X = C * (1 - std::fabs(std::fmod(h_s, 2) - 1));
+
+  double R1 = 0, G1 = 0, B1 = 0;
+
+  if (h_s >= 0 && h_s <= 1) {
+    R1 = C;
+    G1 = X;
+    B1 = 0;
+  } else if (h_s > 1 && h_s <= 2) {
+    R1 = X;
+    G1 = C;
+    B1 = 0;
+  } else if (h_s > 2 && h_s <= 3) {
+    R1 = 0;
+    G1 = C;
+    B1 = X;
+  } else if (h_s > 3 && h_s <= 4) {
+    R1 = 0;
+    G1 = X;
+    B1 = C;
+  } else if (h_s > 4 && h_s <= 5) {
+    R1 = X;
+    G1 = 0;
+    B1 = C;
+  } else if (h_s > 5 && h_s <= 6) {
+    R1 = C;
+    G1 = 0;
+    B1 = X;
   }
-  double R = std::fmin(r, 1.0);
-  double G = std::fmin(g, 1.0);
-  double B = std::fmin(b, 1.0);
-  return {R, G, B};
+
+  double m = V - C;
+
+  return {R1 + m, G1 + m, B1 + m};
 }
 
 CColorPixelDbl HSL::FromRGB(CColorPixelDbl c) {
-  double R = c.r * 255.0, G = c.g * 255.0, B = c.b * 255.0;
+  double R = c.r, G = c.g, B = c.b;
   double c_high = std::fmax(R, std::fmax(G, B));
   double c_low = std::fmin(R, std::fmin(G, B));
-  double c_rng = c_high - c_low;
+  double c_range = c_high - c_low;
+  double H = 0, S = 0, V;
+  double c_max = 255.0;
 
-  double L = ((c_high + c_low) / 255.0) / 2.0;
+  V = c_high;
 
-  double S = 0;
-  if (0 < L && L < 1) {
-    double d = (L <= 0.5) ? L : (1 - L);
-    S = 0.5 * (c_rng / 255.0) / d;
+  double L = V - c_range / 2.0;
+
+  if (L == 0 || L == 1) {
+    S = 0;
+  } else {
+    S = (V - L) / (std::fmin(L, 1 - L));
   }
 
-  double H = 0;
-  if (c_high > 0 && c_rng > 0) {
-    double r = double(c_high - R) / c_rng;
-    double g = double(c_high - G) / c_rng;
-    double b = double(c_high - B) / c_rng;
-    double h;
-    if (R == c_high) {
-      h = b - g;
-    } else if (G == c_high) {
-      h = r - b + 2.0;
-    } else {
-      h = g - r + 4.0;
+  if (c_range > 0) {
+    if (V == R) {
+      H = 60 * (G - B) / c_range;
+    } else if (V == G) {
+      H = 60 * (2 + (B - R) / c_range);
+    } else if (V == B) {
+      H = 60 * (4 + (R - G) / c_range);
     }
-    if (h < 0) {
-      h = h + 6.0;
-    }
-    H = h / 6;
   }
-  return {H, S, L};
+  return {H / 360.0, S, L};
 }
 
 CColorPixelDbl HSL::ToRGB(CColorPixelDbl c) {
-  double H = c.h, L = c.l, S = c.s;
-  double r = 0, g = 0, b = 0;
-  if (L <= 0) {
-    r = g = b = 0;
-  } else if (L >= 1) {
-    r = g = b = 1;
-  } else {
-    double hh = long(6 * H) % 6;
-    int c1 = hh;
-    double c2 = hh - c1;
-    double d = (L <= 0.5) ? (S * L) : S * (1 - L);
-    double w = L + d;
-    double x = L - d;
-    double y = w - (w - x) * c2;
-    double z = x + (w - x) * c2;
-    switch (c1) {
-      case 0: r = w;
-        g = z;
-        b = x;
-        break;
-      case 1: r = y;
-        g = w;
-        b = x;
-        break;
-      case 2: r = x;
-        g = w;
-        b = z;
-        break;
-      case 3: r = x;
-        g = y;
-        b = w;
-        break;
-      case 4: r = z;
-        g = x;
-        b = w;
-        break;
-      case 5: r = w;
-        g = x;
-        b = y;
-        break;
+  double H = c.h * 360, S = c.s, L = c.l;
+
+  double C = (1 - std::fabs(2 * L - 1)) * S;
+
+  double h_s = H / 60;
+
+  double X = C * (1 - std::fabs(std::fmod(h_s, 2) - 1));
+
+  double R1 = 0, G1 = 0, B1 = 0;
+
+  switch ((long) std::ceil(h_s)) {
+    case 1: {
+      R1 = C;
+      G1 = X;
+      B1 = 0;
+    }
+      break;
+    case 2: {
+      R1 = X;
+      G1 = C;
+      B1 = 0;
+    }
+      break;
+    case 3: {
+      R1 = 0;
+      G1 = C;
+      B1 = X;
+    }
+      break;
+    case 4: {
+      R1 = 0;
+      G1 = X;
+      B1 = C;
+    }
+      break;
+    case 5: {
+      R1 = X;
+      G1 = 0;
+      B1 = C;
+    }
+      break;
+    case 6: {
+      R1 = C;
+      G1 = 0;
+      B1 = X;
+    }
+      break;
+    default: {
+      // Never happen
     }
   }
-  double R = std::fmin(r, 1.0);
-  double G = std::fmin(g, 1.0);
-  double B = std::fmin(b, 1.0);
 
-  return {R, G, B};
+  double m = L - C / 2.0;
+
+  return {R1 + m, G1 + m, B1 + m};
 }
 
 CColorPixel HSL::FromRGB(CColorPixel c) {
@@ -232,19 +230,21 @@ CColorPixel YCbCr601::FromRGB(CColorPixel c) {
 CColorPixelDbl YCbCr601::FromRGB(CColorPixelDbl c) {
   double K_ry = 0.299;
   double K_by = 0.114;
-  double K_gy = 1 - K_ry - K_by;
+  double K_gy = 1.0 - K_ry - K_by;
   double Y = K_ry * c.r + K_gy * c.g + K_by * c.b;
-  double Cb = c.b - Y;
-  double Cr = c.r - Y;
-  return CColorPixelDbl{Clamp(Y), Clamp(Cb), Clamp(Cr)};
+  double Pb = ((c.b - Y) / (1.0 - K_by)) / 2.0;
+  double Pr = ((c.r - Y) / (1.0 - K_ry)) / 2.0;
+  return CColorPixelDbl{Y, Pb + 0.5, Pr + 0.5};
 }
 CColorPixelDbl YCbCr601::ToRGB(CColorPixelDbl c) {
   double K_ry = 0.299;
   double K_by = 0.114;
-  double K_gy = 1 - K_ry - K_by;
-  double R = c.Y + c.Cr;
-  double G = c.Y - (K_by / K_gy) * c.Cb - (K_ry / K_gy) * c.Cr;
-  double B = c.Y + c.Cb;
+  double K_gy = 1.0 - K_ry - K_by;
+  c.Cb -= 0.5;
+  c.Cr -= 0.5;
+  double R = c.Y + (2 - 2 * K_ry) * c.Cr;
+  double G = c.Y - (K_by * c.Cb) / K_gy * (2.0 - 2.0 * K_by) - K_ry / K_gy * (2.0 - 2.0 * K_ry) * c.Cr;
+  double B = c.Y + (2.0 - 2.0 * K_by) * c.Cb;
   return CColorPixelDbl{Clamp(R), Clamp(G), Clamp(B)};
 }
 CColorPixel YCbCr601::ToRGB(CColorPixel c) {
@@ -255,15 +255,15 @@ CColorPixel YCbCr601::ToRGB(CColorPixel c) {
 CColorPixelDbl YCoCg::FromRGB(CColorPixelDbl c) {
   double Y = c.r / 4.0 + c.g / 2.0 + c.b / 4.0;
   double Co = c.r / 2.0 - c.b / 2.0;
-  double Cg = -c.r / 4.0 + c.g / 2 - c.b / 4.0;
-  return {Clamp(Y), Clamp(Co), Clamp(Cg)};
+  double Cg = -c.r / 4.0 + c.g / 2.0 - c.b / 4.0;
+  return {Y, Co + 0.5, Cg + 0.5};
 }
 
 CColorPixelDbl YCoCg::ToRGB(CColorPixelDbl c) {
-  double tmp = c.Y - c.Cg;
-  double R = tmp + c.Co;
-  double G = c.Y + c.Cg;
-  double B = tmp - c.Co;
+  double tmp = c.Y - c.Cg + 0.5;
+  double R = tmp + c.Co - 0.5;
+  double G = c.Y + c.Cg - 0.5;
+  double B = tmp - c.Co + 0.5;
   return {Clamp(R), Clamp(G), Clamp(B)};
 }
 
@@ -293,16 +293,18 @@ CColorPixelDbl YCbCr709::FromRGB(CColorPixelDbl c) {
   double K_by = 0.0722;
   double K_gy = 1 - K_ry - K_by;
   double Y = K_ry * c.r + K_gy * c.g + K_by * c.b;
-  double Cb = c.b - Y;
-  double Cr = c.r - Y;
-  return CColorPixelDbl{Clamp(Y), Clamp(Cb), Clamp(Cr)};
+  double Pb = ((c.b - Y) / (1.0 - K_by)) / 2.0;
+  double Pr = ((c.r - Y) / (1.0 - K_ry)) / 2.0;
+  return CColorPixelDbl{Y, Pb + 0.5, Pr + 0.5};
 }
 CColorPixelDbl YCbCr709::ToRGB(CColorPixelDbl c) {
   double K_ry = 0.2126;
   double K_by = 0.0722;
   double K_gy = 1 - K_ry - K_by;
-  double R = c.Y + c.Cr;
-  double G = c.Y - (K_by / K_gy) * c.Cb - (K_ry / K_gy) * c.Cr;
-  double B = c.Y + c.Cb;
+  c.Cb -= 0.5;
+  c.Cr -= 0.5;
+  double R = c.Y + (2 - 2 * K_ry) * c.Cr;
+  double G = c.Y - (K_by * c.Cb) / K_gy * (2.0 - 2.0 * K_by) - K_ry / K_gy * (2.0 - 2.0 * K_ry) * c.Cr;
+  double B = c.Y + (2.0 - 2.0 * K_by) * c.Cb;
   return CColorPixelDbl{Clamp(R), Clamp(G), Clamp(B)};
 }
