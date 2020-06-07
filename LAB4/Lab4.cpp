@@ -153,9 +153,9 @@ int main(int argc, char *argv[]) {
       auto R = tmp.GetImageByChannel('R');
       auto G = tmp.GetImageByChannel('G');
       auto B = tmp.GetImageByChannel('B');
-      R->WriteImg(input_name+"_1"+output_ext);
-      G->WriteImg(input_name+"_2"+output_ext);
-      B->WriteImg(input_name+"_3"+output_ext);
+      R->WriteImg(output_name+"_1"+output_ext);
+      G->WriteImg(output_name+"_2"+output_ext);
+      B->WriteImg(output_name+"_3"+output_ext);
       delete R;
       delete G;
       delete B;
