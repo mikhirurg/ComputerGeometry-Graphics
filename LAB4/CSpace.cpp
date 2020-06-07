@@ -147,52 +147,36 @@ CColorPixelDbl HSL::ToRGB(CColorPixelDbl c) {
 
   double C = (1 - std::fabs(2 * L - 1)) * S;
 
-  double h_s = H / 60;
+  double h_s = H / 60.0;
 
   double X = C * (1 - std::fabs(std::fmod(h_s, 2) - 1));
 
   double R1 = 0, G1 = 0, B1 = 0;
 
-  switch ((long) std::ceil(h_s)) {
-    case 1: {
-      R1 = C;
-      G1 = X;
-      B1 = 0;
-    }
-      break;
-    case 2: {
-      R1 = X;
-      G1 = C;
-      B1 = 0;
-    }
-      break;
-    case 3: {
-      R1 = 0;
-      G1 = C;
-      B1 = X;
-    }
-      break;
-    case 4: {
-      R1 = 0;
-      G1 = X;
-      B1 = C;
-    }
-      break;
-    case 5: {
-      R1 = X;
-      G1 = 0;
-      B1 = C;
-    }
-      break;
-    case 6: {
-      R1 = C;
-      G1 = 0;
-      B1 = X;
-    }
-      break;
-    default: {
-      // Never happen
-    }
+  if (h_s >= 0 && h_s <= 1) {
+    R1 = C;
+    G1 = X;
+    B1 = 0;
+  } else if (h_s > 1 && h_s <= 2) {
+    R1 = X;
+    G1 = C;
+    B1 = 0;
+  } else if (h_s > 2 && h_s <= 3) {
+    R1 = 0;
+    G1 = C;
+    B1 = X;
+  } else if (h_s > 3 && h_s <= 4) {
+    R1 = 0;
+    G1 = X;
+    B1 = C;
+  } else if (h_s > 4 && h_s <= 5) {
+    R1 = X;
+    G1 = 0;
+    B1 = C;
+  } else if (h_s > 5 && h_s <= 6) {
+    R1 = C;
+    G1 = 0;
+    B1 = X;
   }
 
   double m = L - C / 2.0;
