@@ -95,11 +95,16 @@ int main(int argc, char *argv[]) {
     }
 
     // log();
-
-    std::string input_name = glob_args.in_name.substr(0, glob_args.in_name.find_last_of('.'));
-    std::string input_ext = glob_args.in_name.substr(glob_args.in_name.find_last_of('.'), glob_args.in_name.length());
-    std::string output_name = glob_args.out_name.substr(0, glob_args.out_name.find_last_of('.'));
-    std::string output_ext = glob_args.out_name.substr(glob_args.out_name.find_last_of('.'), glob_args.out_name.length());
+    
+    int in_dot = glob_args.in_name.find_last_of('.');
+    int out_dot = glob_args.out_name.find_last_of('.');
+    if (in_dot == -1 || out_dot == -1) {
+      throw CImageParamsException();
+    }
+    std::string input_name = glob_args.in_name.substr(0, in_dot);
+    std::string input_ext = glob_args.in_name.substr(in_dot, glob_args.in_name.length());
+    std::string output_name = glob_args.out_name.substr(0, out_dot);
+    std::string output_ext = glob_args.out_name.substr(out_dot, glob_args.out_name.length());
 
     CImage<CColorPixel> *p_img;
 
