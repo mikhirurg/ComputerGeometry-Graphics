@@ -394,7 +394,7 @@ T apply_alpha(T bright, T under_color, int a, double gamma) {
 
 template<class T>
 CImage<T>::CImage(const CImage<T> &img)
-    : w_(img.GetWidth()), h_(img.GetHeight()), max_val_(img.GetMaxVal()) {
+    : w_(img.GetWidth()), h_(img.GetHeight()), max_val_(img.GetMaxVal()), type_(img.GetFileType()) {
   data_ = new T[w_ * h_];
   for (int i = 0; i < w_ * h_; i++) {
     data_[i] = img.data_[i];

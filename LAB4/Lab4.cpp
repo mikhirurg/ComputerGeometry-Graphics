@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
     }
 
     // log();
-    
+
     int in_dot = glob_args.in_name.find_last_of('.');
     int out_dot = glob_args.out_name.find_last_of('.');
     if (in_dot == -1 || out_dot == -1) {
